@@ -49,7 +49,7 @@ npm install
 ### Instalar Tailwind CSS
 
 > [!WARNING]   
->Se esta usando la Versión 3.13.4 de Tailwind
+>Se esta usando la Versión 3.18.4 de Tailwind
 ``` bash
 npm install -D tailwindcss@3 postcss autoprefixer
 hnpx tailwindcss init -p
