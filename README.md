@@ -37,7 +37,7 @@ Aplicación web para la gestión del programa "Beneficio Joven", que permite a j
 
 1. **Clonar el repositorio**
 ```bash
-git clone <url-del-repositorio>
+git clone <https://github.com/MasterJuan579/Beneficio_Joven_Frontend.git>
 cd Beneficio_Joven_Frontend
 ```
 
