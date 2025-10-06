@@ -1,7 +1,7 @@
 // src/context/AuthContext.jsx
 import { createContext, useState, useContext, useEffect } from 'react';
 import { login as loginService, register as registerService, logout as logoutService } from '../api/services/authService';
-import { getToken, getUser, hasToken } from '../../utils/tokenManager';
+import { getToken, getUser, hasToken } from '../utils/tokenManager';
 
 // Crear el contexto
 const AuthContext = createContext();
@@ -43,7 +43,18 @@ export const AuthProvider = ({ children }) => {
       if (result.success) {
         setUser(result.data.user);
         setIsAuthenticated(true);
-        return { success: true };
+        
+        const { role } = result.data.user;
+        
+        const routes = {
+          'administrador': '/admin/dashboard',
+          'dueno': '/comercio/dashboard',
+          'beneficiario': '/beneficiario/dashboard'
+        };
+        
+        window.location.href = routes[role] || '/dashboard';
+        
+        return { success: true, data: result.data };
       }
 
       return result; // Retorna el error
