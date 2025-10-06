@@ -94,24 +94,7 @@ npm run dev
 
 ## Estructura del Proyecto
 ``` Markdown
-Beneficio_Joven_Frontend/
-├── src/
-│   ├── components/
-│   │   ├── common/          # Componentes compartidos
-│   │   ├── admin/           # Componentes del administrador
-│   │   ├── establecimiento/ # Componentes de establecimientos
-│   │   └── beneficiario/    # Componentes de beneficiarios
-│   ├── pages/
-│   │   ├── admin/
-│   │   ├── establecimiento/
-│   │   └── beneficiario/
-│   ├── services/            # Conexiones a Lambda APIs
-│   ├── hooks/               # Custom hooks
-│   ├── context/             # Context API
-│   ├── utils/               # Funciones auxiliares
-│   └── routes/              # Configuración de rutas
-├── public/
-└── package.json
+  Pendiente
 ```
 
 ### Tecnologías Utilizadas
