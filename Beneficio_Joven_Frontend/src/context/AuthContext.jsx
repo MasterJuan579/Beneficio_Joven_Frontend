@@ -44,15 +44,6 @@ export const AuthProvider = ({ children }) => {
         setUser(result.data.user);
         setIsAuthenticated(true);
         
-        const { role } = result.data.user;
-        
-        const routes = {
-          'administrador': '/admin/dashboard',
-          'dueno': '/comercio/dashboard',
-          'beneficiario': '/beneficiario/dashboard'
-        };
-        
-        window.location.href = routes[role] || '/dashboard';
         
         return { success: true, data: result.data };
       }

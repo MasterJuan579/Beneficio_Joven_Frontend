@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from 'react-router-dom';
 
 function Login() {
   const { login } = useAuth();
+  const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -16,34 +19,51 @@ function Login() {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    if (error) setError('');
   };
 
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
     try {
-        const result = await login(formData.email, formData.password);
+      const result = await login(formData.email, formData.password);
+      
+      if (result.success) {
+        console.log("Login exitoso:", result.data);
         
-        if (!result.success) {
-        setError(result.message || "Error al iniciar sesión");
+        // AGREGAR: Redirigir según el role
+        const { role } = result.data.user;
+        
+        if (role === 'administrador') {
+          navigate('/admin/dashboard');
+        } else if (role === 'dueno') {
+          navigate('/comercio/dashboard');
+        } else if (role === 'beneficiario') {
+          navigate('/beneficiario/dashboard');
+        } else {
+          navigate('/dashboard'); // Fallback por si acaso
         }
         
+      } else {
+        setError(result.message || "Error al iniciar sesión");
+      }
+      
     } catch (err) {
-        setError("Error inesperado. Intenta de nuevo.");
-        console.error("Error en login:", err);
+      setError("Error inesperado. Intenta de nuevo.");
+      console.error("Error en login:", err);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-    };
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       {/* Logo esquina superior izquierda */}
       <div className="absolute top-6 left-6">
         <img
-          src="src/assets/logo-beneficio.png"
+          src="src/assets/Logos/logo-beneficio.png"
           alt="Beneficio Joven"
           className="h-12"
         />
@@ -54,7 +74,7 @@ function Login() {
           {/* Logo de Dirección de la Juventud */}
           <div className="flex justify-center mb-6">
             <img
-              src="src/assets/logo-juventud.png"
+              src="src/assets/Logos/logo-juventud.png"
               alt="Dirección de la Juventud"
               className="h-21"
             />
