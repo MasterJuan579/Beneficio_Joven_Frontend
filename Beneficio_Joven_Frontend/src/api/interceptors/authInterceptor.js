@@ -30,7 +30,7 @@ axiosInstance.interceptors.response.use(
   (error) => {
     // Si el token expiró o es inválido
     if (error.response?.status === 401) {
-      console.log('⚠️ Token inválido o expirado');
+      console.log('Token inválido o expirado');
       clearAuth();
       
       // Redirigir al login (opcional)
