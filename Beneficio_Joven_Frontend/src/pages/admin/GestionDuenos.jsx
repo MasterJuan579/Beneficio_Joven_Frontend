@@ -1,8 +1,10 @@
 import { useAuth } from '../../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getDuenos } from '../../api/services/admin-api-requests/duenos';
+import { getDuenos, toggleDuenoStatus } from '../../api/services/admin-api-requests/duenos';
 import AddDuenoModal from '../../components/admin/duenos/AddDuenoModal';
+import ConfirmToggleModal from '../../components/admin/duenos/ConfirmToggleModal';
+import ToggleSwitch from '../../components/common/ToggleSwitch'; 
 
 
 function GestionDuenos() {
@@ -14,6 +16,10 @@ function GestionDuenos() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDueno, setSelectedDueno] = useState(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+
 
   // Cargar dueños al montar el componente
   useEffect(() => {
@@ -38,6 +44,31 @@ function GestionDuenos() {
     dueno.nombreUsuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
     dueno.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Manejar el toggle de Activar / Desactivar
+  const handleToggleClick = (dueno) => {
+    setSelectedDueno(dueno);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!selectedDueno) return;
+
+    setIsTogglingStatus(true);
+    const result = await toggleDuenoStatus(selectedDueno.idDueno);
+
+    if (result.success) {
+      // Recargar la lista
+      await fetchDuenos();
+      // Cerrar modal
+      setIsConfirmModalOpen(false);
+      setSelectedDueno(null);
+    } else {
+      alert('Error al cambiar el estado: ' + result.message);
+    }
+
+    setIsTogglingStatus(false);
+  };
 
   const handleLogout = () => {
     logout();
@@ -149,6 +180,7 @@ function GestionDuenos() {
 
         {/* Tabla */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          {/* Loading State */}
           {isLoading ? (
             <div className="p-8">
               <div className="animate-pulse space-y-4">
@@ -158,12 +190,16 @@ function GestionDuenos() {
               </div>
             </div>
           ) : filteredDuenos.length === 0 ? (
+            /* Estado Sin Resultados */
             <div className="text-center py-12">
               <p className="text-gray-500">No se encontraron dueños</p>
             </div>
           ) : (
+            /* Tabla con Datos */
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
+                
+                {/* ========== ENCABEZADOS DE LA TABLA ========== */}
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -183,24 +219,34 @@ function GestionDuenos() {
                     </th>
                   </tr>
                 </thead>
+                
+                {/* ========== CUERPO DE LA TABLA ========== */}
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredDuenos.map((dueno) => (
                     <tr key={dueno.idDueno} className="hover:bg-gray-50">
+                      
+                      {/* Columna: Nombre Usuario */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {dueno.nombreUsuario}
                         </div>
                       </td>
+                      
+                      {/* Columna: Email */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
                           {dueno.email}
                         </div>
                       </td>
+                      
+                      {/* Columna: Cantidad de Establecimientos */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
                           {dueno.cantidadEstablecimientos || 0}
                         </div>
                       </td>
+                      
+                      {/* Columna: Estado (Badge) */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           dueno.activo 
@@ -210,23 +256,30 @@ function GestionDuenos() {
                           {dueno.activo ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
+                      
+                      {/* Columna: Acciones (Editar + Toggle) */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-3">
+                          
+                          {/* Botón Editar */}
                           <button className="text-purple-600 hover:text-purple-900">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </button>
-                          <button className={dueno.activo ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                          
+                          {/* Toggle Switch: Activar/Desactivar */}
+                          <ToggleSwitch 
+                            isActive={dueno.activo}
+                            onToggle={() => handleToggleClick(dueno)}
+                          />
+                          
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
+                
               </table>
             </div>
           )}
@@ -237,6 +290,17 @@ function GestionDuenos() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onDuenoCreated={fetchDuenos}
+      />
+      {/* ✅ Modal de Confirmación */}
+      <ConfirmToggleModal 
+        isOpen={isConfirmModalOpen}
+        onClose={() => {
+          setIsConfirmModalOpen(false);
+          setSelectedDueno(null);
+        }}
+        onConfirm={handleConfirmToggle}
+        dueno={selectedDueno}
+        isLoading={isTogglingStatus}
       />
     </div>
   );
