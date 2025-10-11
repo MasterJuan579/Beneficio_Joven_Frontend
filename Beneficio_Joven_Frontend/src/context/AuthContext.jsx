@@ -17,19 +17,19 @@ export const useAuth = () => {
 
 // Provider del contexto
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(() => getUser());
+  const [isAuthenticated, setIsAuthenticated] = useState(() => hasToken());
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Al cargar la app, verificar si hay un usuario autenticado
   useEffect(() => {
     const initAuth = () => {
       if (hasToken()) {
         const userData = getUser();
-        setUser(userData);
-        setIsAuthenticated(true);
+        if (userData) {
+          setUser(userData);
+          setIsAuthenticated(true);
+        }
       }
-      setIsLoading(false);
     };
 
     initAuth();
@@ -44,11 +44,10 @@ export const AuthProvider = ({ children }) => {
         setUser(result.data.user);
         setIsAuthenticated(true);
         
-        
         return { success: true, data: result.data };
       }
 
-      return result; // Retorna el error
+      return result;
     } catch (error) {
       return {
         success: false,
