@@ -1,11 +1,10 @@
 import { useAuth } from "../../context/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getDashboardStats } from "../../api/services/admin-api-requests/dashboard";
+import AdminNavbar from "../../components/common/AdminNavbar";
 
 function AdminDashboard() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Estado para las estadísticas
   const [stats, setStats] = useState({
@@ -33,70 +32,11 @@ function AdminDashboard() {
     fetchStats();
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-purple-600 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center">
-              <img
-                src="../src/assets/Logos/logo-beneficio.png"
-                alt="Beneficio Joven"
-                className="h-10"
-              />
-            </div>
-
-            {/* Menú de navegación */}
-            <div className="hidden md:flex space-x-8">
-              <Link to="/admin/dashboard" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Inicio
-              </Link>
-              <Link to="/admin/comercios" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Comercios
-              </Link>
-              <Link to="/admin/duenos" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Dueños
-              </Link>
-              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Beneficiarios
-              </a>
-              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Reportes
-              </a>
-              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Mapa
-              </a>
-              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Descuentos
-              </a>
-            </div>
-
-            {/* Usuario y logout */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-800 rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">
-                    {user?.nombreUsuario?.charAt(0).toUpperCase() || "A"}
-                  </span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="bg-white text-purple-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-50 transition"
-                >
-                  Cerrar Sesión
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gray-50 pt-16">
+      {/* Navbar (ya es un componente completo) */}
+      <AdminNavbar />
 
       {/* Contenido Principal */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
