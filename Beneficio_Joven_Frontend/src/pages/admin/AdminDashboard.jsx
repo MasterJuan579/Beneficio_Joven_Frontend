@@ -1,5 +1,5 @@
 import { useAuth } from "../../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getDashboardStats } from "../../api/services/admin-api-requests/dashboard";
 
@@ -55,40 +55,25 @@ function AdminDashboard() {
 
             {/* Menú de navegación */}
             <div className="hidden md:flex space-x-8">
-              <a
-                href="#"
-                className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium"
-              >
+              <Link to="/admin/dashboard" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
                 Inicio
-              </a>
-              <a
-                href="#"
-                className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium"
-              >
+              </Link>
+              <Link to="/admin/comercios" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
                 Comercios
-              </a>
-              <a
-                href="#"
-                className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium"
-              >
+              </Link>
+              <Link to="/admin/duenos" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
+                Dueños
+              </Link>
+              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
                 Beneficiarios
               </a>
-              <a
-                href="#"
-                className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium"
-              >
+              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
                 Reportes
               </a>
-              <a
-                href="#"
-                className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium"
-              >
+              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
                 Mapa
               </a>
-              <a
-                href="#"
-                className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium"
-              >
+              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
                 Descuentos
               </a>
             </div>
