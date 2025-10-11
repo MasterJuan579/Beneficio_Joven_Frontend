@@ -6,6 +6,7 @@ import EditDuenoModal from '../../components/admin/duenos/EditDuenoModal';
 import AddDuenoModal from '../../components/admin/duenos/AddDuenoModal';
 import ConfirmToggleModal from '../../components/admin/duenos/ConfirmToggleModal';
 import ToggleSwitch from '../../components/common/ToggleSwitch';
+import Papa from 'papaparse';
 
 
 function GestionDuenos() {
@@ -19,6 +20,7 @@ function GestionDuenos() {
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedDuenoForEdit, setSelectedDuenoForEdit] = useState(null);
+  const [showInactive, setShowInactive] = useState(false);
 
 
   // Cargar dueños al montar el componente
@@ -42,10 +44,17 @@ function GestionDuenos() {
   };
 
   // Filtrar dueños por búsqueda (con fallback de strings para evitar errores)
-  const filteredDuenos = duenos.filter((dueno) =>
-    (dueno?.nombreUsuario || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (dueno?.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredDuenos = duenos.filter((dueno) => {
+    // Filtro por búsqueda
+    const matchesSearch = 
+      (dueno?.nombreUsuario || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (dueno?.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filtro por estado (si showInactive es false, solo mostrar activos)
+    const matchesStatus = showInactive ? true : dueno.activo;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   // Manejar el toggle de Activar / Desactivar
   const handleToggleClick = (dueno) => {
@@ -74,6 +83,42 @@ function GestionDuenos() {
   const handleEditClick = (dueno) => {
     setSelectedDuenoForEdit(dueno);
     setIsEditModalOpen(true);
+  };
+
+  const handleExportCSV = () => {
+    // Preparar datos para CSV
+    const dataToExport = duenos.map((dueno) => ({
+      'ID': dueno.idDueno,
+      'Nombre de Usuario': dueno.nombreUsuario,
+      'Email': dueno.email,
+      'Establecimientos': dueno.cantidadEstablecimientos || 0,
+      'Estado': dueno.activo ? 'Activo' : 'Inactivo',
+      'Fecha Registro': dueno.fechaRegistro
+        ? new Date(dueno.fechaRegistro).toLocaleDateString('es-MX')
+        : '',
+    }));
+
+    // Convertir a CSV
+    const csv = Papa.unparse(dataToExport, {
+      quotes: true,
+      header: true,
+    });
+
+    // Crear blob y descargar
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute(
+      'download',
+      `duenos_${new Date().toISOString().split('T')[0]}.csv`
+    );
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
 
@@ -111,6 +156,8 @@ function GestionDuenos() {
             </div>
 
             {/* Botones */}
+
+            {/*Botón Agregar Dueño */}
             <div className="flex gap-3">
               <button
                 onClick={() => setIsModalOpen(true)}
@@ -121,7 +168,37 @@ function GestionDuenos() {
                 </svg>
                 Agregar Dueño
               </button>
+
+              {/*Botón Exportar CSV */}
+              <button
+                onClick={handleExportCSV}
+                disabled={duenos.length === 0}
+                className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Exportar CSV
+              </button>
+
+              {/* Botón Ver Inactivos */}
+              <button
+                onClick={() => setShowInactive(!showInactive)}
+                className={`border px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
+                  showInactive
+                    ? 'bg-purple-600 text-white border-purple-600'
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                {showInactive ? 'Ver Solo Activos' : 'Ver Inactivos'}
+              </button>
             </div>
+
+
           </div>
         </div>
 
