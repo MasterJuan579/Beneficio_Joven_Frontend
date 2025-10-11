@@ -1,19 +1,27 @@
-import { useAuth } from '../../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+// src/pages/admin/GestionDuenos.jsx
 import { useState, useEffect } from 'react';
-import { getDuenos } from '../../api/services/admin-api-requests/duenos';
+import AdminNavbar from '../../components/common/AdminNavbar';
+import { getDuenos, toggleDuenoStatus } from '../../api/services/admin-api-requests/duenos';
+import EditDuenoModal from '../../components/admin/duenos/EditDuenoModal';
 import AddDuenoModal from '../../components/admin/duenos/AddDuenoModal';
+import ConfirmToggleModal from '../../components/admin/duenos/ConfirmToggleModal';
+import ToggleSwitch from '../../components/common/ToggleSwitch';
+import Papa from 'papaparse';
 
 
 function GestionDuenos() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
   // Estados
   const [duenos, setDuenos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDueno, setSelectedDueno] = useState(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedDuenoForEdit, setSelectedDuenoForEdit] = useState(null);
+  const [showInactive, setShowInactive] = useState(false);
+
 
   // Cargar dueños al montar el componente
   useEffect(() => {
@@ -21,89 +29,106 @@ function GestionDuenos() {
   }, []);
 
   const fetchDuenos = async () => {
+    console.log('🔄 Iniciando carga de dueños...');
     setIsLoading(true);
     const result = await getDuenos();
-    
     if (result.success) {
+      console.log('✅ Dueños recibidos:', result.data.length, 'registros');
+      console.log('📋 Datos completos:', result.data);
       setDuenos(result.data);
     } else {
-      console.error('Error al cargar dueños:', result.message);
+      console.error('❌ Error al cargar dueños:', result.message);
     }
-    
+
     setIsLoading(false);
   };
 
-  // Filtrar dueños por búsqueda
-  const filteredDuenos = duenos.filter(dueno =>
-    dueno.nombreUsuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    dueno.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar dueños por búsqueda (con fallback de strings para evitar errores)
+  const filteredDuenos = duenos.filter((dueno) => {
+    // Filtro por búsqueda
+    const matchesSearch = 
+      (dueno?.nombreUsuario || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (dueno?.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filtro por estado (si showInactive es false, solo mostrar activos)
+    const matchesStatus = showInactive ? true : dueno.activo;
+    
+    return matchesSearch && matchesStatus;
+  });
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  // Manejar el toggle de Activar / Desactivar
+  const handleToggleClick = (dueno) => {
+    setSelectedDueno(dueno);
+    setIsConfirmModalOpen(true);
   };
 
+  const handleConfirmToggle = async () => {
+    if (!selectedDueno) return;
+    
+    setIsTogglingStatus(true);
+    const result = await toggleDuenoStatus(selectedDueno.idDueno);
+
+    if (result.success) {
+      await fetchDuenos();              // Recargar la lista
+      setIsConfirmModalOpen(false);     // Cerrar modal
+      setSelectedDueno(null);
+    } else {
+      alert('Error al cambiar el estado: ' + result.message);
+    }
+
+    setIsTogglingStatus(false);
+  };
+
+    // Función para abrir modal de edición
+  const handleEditClick = (dueno) => {
+    setSelectedDuenoForEdit(dueno);
+    setIsEditModalOpen(true);
+  };
+
+  const handleExportCSV = () => {
+    // Preparar datos para CSV
+    const dataToExport = duenos.map((dueno) => ({
+      'ID': dueno.idDueno,
+      'Nombre de Usuario': dueno.nombreUsuario,
+      'Email': dueno.email,
+      'Establecimientos': dueno.cantidadEstablecimientos || 0,
+      'Estado': dueno.activo ? 'Activo' : 'Inactivo',
+      'Fecha Registro': dueno.fechaRegistro
+        ? new Date(dueno.fechaRegistro).toLocaleDateString('es-MX')
+        : '',
+    }));
+
+    // Convertir a CSV
+    const csv = Papa.unparse(dataToExport, {
+      quotes: true,
+      header: true,
+    });
+
+    // Crear blob y descargar
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute(
+      'download',
+      `duenos_${new Date().toISOString().split('T')[0]}.csv`
+    );
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-purple-600 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <img 
-                src="../src/assets/Logos/logo-beneficio.png" 
-                alt="Beneficio Joven" 
-                className="h-10"
-              />
-            </div>
-
-            <div className="hidden md:flex space-x-8">
-              <Link to="/admin/dashboard" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Inicio
-              </Link>
-              <Link to="/admin/comercios" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Comercios
-              </Link>
-              <Link to="/admin/duenos" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Dueños
-              </Link>
-              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Beneficiarios
-              </a>
-              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Reportes
-              </a>
-              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Mapa
-              </a>
-              <a href="#" className="text-white hover:text-purple-200 px-3 py-2 text-sm font-medium">
-                Descuentos
-              </a>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-800 rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">
-                    {user?.nombreUsuario?.charAt(0).toUpperCase() || 'A'}
-                  </span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="bg-white text-purple-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-50 transition"
-                >
-                  Cerrar Sesión
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gray-50 pt-16">
+      {/* Navbar fija y reutilizable */}
+      <AdminNavbar />
 
       {/* Contenido Principal */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
           Gestión de Dueños
         </h1>
@@ -111,7 +136,6 @@ function GestionDuenos() {
         {/* Barra de acciones */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            
             {/* Búsqueda */}
             <div className="relative flex-1 max-w-md">
               <input
@@ -121,10 +145,10 @@ function GestionDuenos() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
               />
-              <svg 
-                className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className="absolute left-3 top-2.5 w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -132,8 +156,10 @@ function GestionDuenos() {
             </div>
 
             {/* Botones */}
+
+            {/*Botón Agregar Dueño */}
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={() => setIsModalOpen(true)}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2"
               >
@@ -142,7 +168,36 @@ function GestionDuenos() {
                 </svg>
                 Agregar Dueño
               </button>
+
+              {/*Botón Exportar CSV */}
+              <button
+                onClick={handleExportCSV}
+                disabled={duenos.length === 0}
+                className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Exportar CSV
+              </button>
+
+              {/* Botón Ver Inactivos */}
+              <button
+                onClick={() => setShowInactive(!showInactive)}
+                className={`border px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
+                  showInactive
+                    ? 'bg-purple-600 text-white border-purple-600'
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                {showInactive ? 'Ver Solo Activos' : 'Ver Inactivos'}
+              </button>
             </div>
+
 
           </div>
         </div>
@@ -150,6 +205,7 @@ function GestionDuenos() {
         {/* Tabla */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {isLoading ? (
+            // Loading State
             <div className="p-8">
               <div className="animate-pulse space-y-4">
                 {[1, 2, 3].map((i) => (
@@ -158,12 +214,15 @@ function GestionDuenos() {
               </div>
             </div>
           ) : filteredDuenos.length === 0 ? (
+            // Estado Sin Resultados
             <div className="text-center py-12">
               <p className="text-gray-500">No se encontraron dueños</p>
             </div>
           ) : (
+            // Tabla con Datos
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
+                {/* Encabezados */}
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -183,45 +242,57 @@ function GestionDuenos() {
                     </th>
                   </tr>
                 </thead>
+
+                {/* Cuerpo */}
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredDuenos.map((dueno) => (
                     <tr key={dueno.idDueno} className="hover:bg-gray-50">
+                      {/* Nombre Usuario */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {dueno.nombreUsuario}
                         </div>
                       </td>
+                      {/* Email */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
                           {dueno.email}
                         </div>
                       </td>
+                      {/* Establecimientos */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
                           {dueno.cantidadEstablecimientos || 0}
                         </div>
                       </td>
+                      {/* Estado */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          dueno.activo 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            dueno.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}
+                        >
                           {dueno.activo ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
+                      {/* Acciones */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-3">
-                          <button className="text-purple-600 hover:text-purple-900">
+                          {/* Editar */}
+                          <button 
+                            onClick={() => handleEditClick(dueno)}
+                            className="text-purple-600 hover:text-purple-900"
+                          >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </button>
-                          <button className={dueno.activo ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+
+                          {/* Toggle Switch: Activar/Desactivar */}
+                          <ToggleSwitch
+                            isActive={dueno.activo}
+                            onToggle={() => handleToggleClick(dueno)}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -231,12 +302,35 @@ function GestionDuenos() {
             </div>
           )}
         </div>
-          
       </div>
-      <AddDuenoModal 
+
+      {/* Modal: Crear Dueño */}
+      <AddDuenoModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onDuenoCreated={fetchDuenos}
+      />
+
+      {/* Modal de Confirmación Toggle */}
+      <ConfirmToggleModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => {
+          setIsConfirmModalOpen(false);
+          setSelectedDueno(null);
+        }}
+        onConfirm={handleConfirmToggle}
+        dueno={selectedDueno}
+        isLoading={isTogglingStatus}
+      />
+
+      <EditDuenoModal 
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedDuenoForEdit(null);
+        }}
+        onDuenoUpdated={fetchDuenos}
+        dueno={selectedDuenoForEdit}
       />
     </div>
   );

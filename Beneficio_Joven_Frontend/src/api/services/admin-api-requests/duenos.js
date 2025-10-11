@@ -89,23 +89,3 @@ export const toggleDuenoStatus = async (idDueno) => {
   }
 };
 
-/**
- * Eliminar dueño
- */
-export const deleteDueno = async (idDueno) => {
-  try {
-    const response = await axiosInstance.delete(`/admin/duenos/${idDueno}`);
-
-    return {
-      success: true,
-      message: 'Dueño eliminado exitosamente',
-    };
-  } catch (error) {
-    console.error('❌ Error al eliminar dueño:', error);
-    
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Error al eliminar dueño',
-    };
-  }
-};
