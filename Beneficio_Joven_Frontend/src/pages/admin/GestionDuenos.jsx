@@ -2,6 +2,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getDuenos, toggleDuenoStatus } from '../../api/services/admin-api-requests/duenos';
+import EditDuenoModal from '../../components/admin/duenos/EditDuenoModal';
 import AddDuenoModal from '../../components/admin/duenos/AddDuenoModal';
 import ConfirmToggleModal from '../../components/admin/duenos/ConfirmToggleModal';
 import ToggleSwitch from '../../components/common/ToggleSwitch'; 
@@ -19,6 +20,8 @@ function GestionDuenos() {
   const [selectedDueno, setSelectedDueno] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // ← AGREGAR
+  const [selectedDuenoForEdit, setSelectedDuenoForEdit] = useState(null); // ← AGREGAR
 
 
   // Cargar dueños al montar el componente
@@ -27,13 +30,18 @@ function GestionDuenos() {
   }, []);
 
   const fetchDuenos = async () => {
+    console.log('🔄 Iniciando carga de dueños...');
     setIsLoading(true);
     const result = await getDuenos();
     
+    console.log('📦 Resultado getDuenos:', result);
+    
     if (result.success) {
+      console.log('✅ Dueños recibidos:', result.data.length, 'registros');
+      console.log('📋 Datos completos:', result.data);
       setDuenos(result.data);
     } else {
-      console.error('Error al cargar dueños:', result.message);
+      console.error('❌ Error al cargar dueños:', result.message);
     }
     
     setIsLoading(false);
@@ -53,13 +61,13 @@ function GestionDuenos() {
 
   const handleConfirmToggle = async () => {
     if (!selectedDueno) return;
-
+    
     setIsTogglingStatus(true);
     const result = await toggleDuenoStatus(selectedDueno.idDueno);
 
-    if (result.success) {
+    if (result.success) {      
       // Recargar la lista
-      await fetchDuenos();
+      await fetchDuenos();      
       // Cerrar modal
       setIsConfirmModalOpen(false);
       setSelectedDueno(null);
