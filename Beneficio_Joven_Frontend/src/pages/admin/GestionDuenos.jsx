@@ -7,6 +7,7 @@ import AddDuenoModal from '../../components/admin/duenos/AddDuenoModal';
 import ConfirmToggleModal from '../../components/admin/duenos/ConfirmToggleModal';
 import ToggleSwitch from '../../components/common/ToggleSwitch';
 
+
 function GestionDuenos() {
   // Estados
   const [duenos, setDuenos] = useState([]);
@@ -16,8 +17,8 @@ function GestionDuenos() {
   const [selectedDueno, setSelectedDueno] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // ← AGREGAR
-  const [selectedDuenoForEdit, setSelectedDuenoForEdit] = useState(null); // ← AGREGAR
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedDuenoForEdit, setSelectedDuenoForEdit] = useState(null);
 
 
   // Cargar dueños al montar el componente
@@ -68,6 +69,13 @@ function GestionDuenos() {
 
     setIsTogglingStatus(false);
   };
+
+    // Función para abrir modal de edición
+  const handleEditClick = (dueno) => {
+    setSelectedDuenoForEdit(dueno);
+    setIsEditModalOpen(true);
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
@@ -194,7 +202,10 @@ function GestionDuenos() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-3">
                           {/* Editar */}
-                          <button className="text-purple-600 hover:text-purple-900">
+                          <button 
+                            onClick={() => handleEditClick(dueno)}
+                            className="text-purple-600 hover:text-purple-900"
+                          >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
@@ -233,6 +244,16 @@ function GestionDuenos() {
         onConfirm={handleConfirmToggle}
         dueno={selectedDueno}
         isLoading={isTogglingStatus}
+      />
+
+      <EditDuenoModal 
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedDuenoForEdit(null);
+        }}
+        onDuenoUpdated={fetchDuenos}
+        dueno={selectedDuenoForEdit}
       />
     </div>
   );
