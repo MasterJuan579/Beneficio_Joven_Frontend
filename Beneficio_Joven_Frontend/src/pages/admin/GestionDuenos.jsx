@@ -2,6 +2,8 @@ import { useAuth } from '../../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getDuenos } from '../../api/services/admin-api-requests/duenos';
+import AddDuenoModal from '../../components/admin/duenos/AddDuenoModal';
+
 
 function GestionDuenos() {
   const { user, logout } = useAuth();
@@ -11,6 +13,7 @@ function GestionDuenos() {
   const [duenos, setDuenos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Cargar dueños al montar el componente
   useEffect(() => {
@@ -130,7 +133,10 @@ function GestionDuenos() {
 
             {/* Botones */}
             <div className="flex gap-3">
-              <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -225,8 +231,13 @@ function GestionDuenos() {
             </div>
           )}
         </div>
-
+          
       </div>
+      <AddDuenoModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onDuenoCreated={fetchDuenos}
+      />
     </div>
   );
 }
