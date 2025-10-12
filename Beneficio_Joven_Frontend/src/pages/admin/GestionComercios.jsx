@@ -5,6 +5,8 @@ import AdminNavbar from '../../components/common/AdminNavbar';
 import { getSucursales, toggleSucursalStatus } from '../../api/services/admin-api-requests/comercios';
 import ToggleSwitch from '../../components/common/ToggleSwitch';
 import ConfirmToggleSucursalModal from '../../components/admin/comercios/ConfirmToggleSucursalModal';
+import AddSucursalModal from '../../components/admin/comercios/AddSucursalModal';
+
 
 
 function GestionComercios() {
@@ -16,6 +18,7 @@ function GestionComercios() {
   const [selectedSucursal, setSelectedSucursal] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Cargar sucursales al montar el componente
   useEffect(() => {
@@ -155,7 +158,9 @@ function GestionComercios() {
 
             {/* Botones de acción */}
             <div className="flex flex-wrap gap-3">
-              <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
+              <button 
+                onClick={() => setIsAddModalOpen(true)} 
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
                 <svg
                   className="w-5 h-5"
                   fill="none"
@@ -280,7 +285,6 @@ function GestionComercios() {
                         </span>
                       </td>
                       
-                      {/* ✅ Columna de Acciones - ACTUALIZADA */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-3">
                           {/* Botón Editar */}
@@ -316,7 +320,7 @@ function GestionComercios() {
         </div>
       </div>
 
-      {/* Modal de Confirmación - AGREGAR AL FINAL */}
+      {/* Modal de Confirmación*/}
     <ConfirmToggleSucursalModal 
       isOpen={isConfirmModalOpen}
       onClose={() => {
@@ -326,6 +330,16 @@ function GestionComercios() {
       onConfirm={handleConfirmToggle}
       sucursal={selectedSucursal}
       isLoading={isTogglingStatus}
+    />
+    <AddSucursalModal 
+      isOpen={isAddModalOpen}
+      onClose={() => setIsAddModalOpen(false)}
+      onSucursalCreated={async () => {
+        const result = await getSucursales();
+        if (result.success) {
+          setSucursales(result.data);
+        }
+      }}
     />
     </div>
   );

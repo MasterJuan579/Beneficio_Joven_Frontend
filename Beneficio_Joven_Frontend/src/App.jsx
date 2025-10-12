@@ -1,12 +1,16 @@
+// src/App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+
 import Login from './pages/Login'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import GestionComercios from './pages/admin/GestionComercios'
 import GestionDuenos from './pages/admin/GestionDuenos'
-import AdminNavbar from './components/common/AdminNavbar'  // ⬅️ para los placeholders
+import ReportesDashboard from './pages/admin/ReportesDashboard'
+import AdminNavbar from './components/common/AdminNavbar'
 
-function App() {
+// Wrapper para proteger rutas de admin
+function ProtectedAdmin({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth()
 
   if (isLoading) {
@@ -16,11 +20,14 @@ function App() {
       </div>
     )
   }
+  return (isAuthenticated && user?.role === 'administrador')
+    ? children
+    : <Navigate to="/login" replace />
+}
 
-  const isAdmin = isAuthenticated && user?.role === 'administrador'
-
-  // Pequeño helper para placeholders con navbar fija
-  const Placeholder = ({ title }) => (
+// Placeholder simple con navbar fija
+function Placeholder({ title }) {
+  return (
     <>
       <AdminNavbar />
       <div className="min-h-screen bg-gray-50 pt-16 p-6">
@@ -29,55 +36,91 @@ function App() {
       </div>
     </>
   )
+}
 
+export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
 
-      {/* Rutas existentes */}
+      {/* Rutas reales */}
       <Route
         path="/admin/dashboard"
-        element={isAdmin ? <AdminDashboard /> : <Navigate to="/login" />}
+        element={
+          <ProtectedAdmin>
+            <AdminDashboard />
+          </ProtectedAdmin>
+        }
       />
       <Route
         path="/admin/comercios"
-        element={isAdmin ? <GestionComercios /> : <Navigate to="/login" />}
+        element={
+          <ProtectedAdmin>
+            <GestionComercios />
+          </ProtectedAdmin>
+        }
       />
       <Route
         path="/admin/duenos"
-        element={isAdmin ? <GestionDuenos /> : <Navigate to="/login" />}
-      />
-
-      {/* NUEVAS RUTAS de la navbar */}
-      <Route
-        path="/admin/beneficiarios"
-        element={isAdmin ? <Placeholder title="Beneficiarios" /> : <Navigate to="/login" />}
-      />
-      <Route
-        path="/admin/descuentos"
-        element={isAdmin ? <Placeholder title="Descuentos" /> : <Navigate to="/login" />}
+        element={
+          <ProtectedAdmin>
+            <GestionDuenos />
+          </ProtectedAdmin>
+        }
       />
       <Route
         path="/admin/reportes"
-        element={isAdmin ? <Placeholder title="Reportes - Dashboard" /> : <Navigate to="/login" />}
+        element={
+          <ProtectedAdmin>
+            <ReportesDashboard />
+          </ProtectedAdmin>
+        }
+      />
+
+      {/* Placeholders de secciones futuras */}
+      <Route
+        path="/admin/beneficiarios"
+        element={
+          <ProtectedAdmin>
+            <Placeholder title="Beneficiarios" />
+          </ProtectedAdmin>
+        }
+      />
+      <Route
+        path="/admin/descuentos"
+        element={
+          <ProtectedAdmin>
+            <Placeholder title="Descuentos" />
+          </ProtectedAdmin>
+        }
       />
       <Route
         path="/admin/moderacion"
-        element={isAdmin ? <Placeholder title="Moderación" /> : <Navigate to="/login" />}
+        element={
+          <ProtectedAdmin>
+            <Placeholder title="Moderación" />
+          </ProtectedAdmin>
+        }
       />
       <Route
         path="/admin/mapa"
-        element={isAdmin ? <Placeholder title="Mapa" /> : <Navigate to="/login" />}
+        element={
+          <ProtectedAdmin>
+            <Placeholder title="Mapa" />
+          </ProtectedAdmin>
+        }
       />
       <Route
         path="/admin/auditoria"
-        element={isAdmin ? <Placeholder title="Auditoría" /> : <Navigate to="/login" />}
+        element={
+          <ProtectedAdmin>
+            <Placeholder title="Auditoría" />
+          </ProtectedAdmin>
+        }
       />
 
       {/* Catch-all */}
-      <Route path="*" element={<Navigate to="/login" />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
 }
-
-export default App
