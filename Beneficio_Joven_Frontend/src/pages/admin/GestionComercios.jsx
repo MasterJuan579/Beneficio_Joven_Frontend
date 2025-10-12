@@ -2,13 +2,20 @@
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import AdminNavbar from '../../components/common/AdminNavbar';
-import { getSucursales } from '../../api/services/admin-api-requests/comercios';
+import { getSucursales, toggleSucursalStatus } from '../../api/services/admin-api-requests/comercios';
+import ToggleSwitch from '../../components/common/ToggleSwitch';
+import ConfirmToggleSucursalModal from '../../components/admin/comercios/ConfirmToggleSucursalModal';
+
 
 function GestionComercios() {
   // Estados
   const [sucursales, setSucursales] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
+  const [selectedSucursal, setSelectedSucursal] = useState(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
   // Cargar sucursales al montar el componente
   useEffect(() => {
@@ -29,10 +36,17 @@ function GestionComercios() {
   }, []);
 
   // Filtrar sucursales por búsqueda (con ? por seguridad)
-  const filteredSucursales = sucursales.filter((sucursal) =>
-    (sucursal?.nombreSucursal || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (sucursal?.categoria || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSucursales = sucursales.filter((sucursal) => {
+    // Filtro por búsqueda
+    const matchesSearch =
+      (sucursal?.nombreSucursal || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (sucursal?.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filtro por estado (si showInactive es false, solo mostrar activos)
+    const matchesStatus = showInactive ? true : sucursal.activo;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const handleExportCSV = () => {
     // Preparar datos para CSV
@@ -71,6 +85,34 @@ function GestionComercios() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleToggleClick = (sucursal) => {
+    setSelectedSucursal(sucursal);
+    setIsConfirmModalOpen(true);
+  };
+
+  //Manejar Toggle
+  const handleConfirmToggle = async () => {
+  if (!selectedSucursal) return;
+
+  setIsTogglingStatus(true);
+    const result = await toggleSucursalStatus(selectedSucursal.idSucursal);
+
+    if (result.success) {
+      // Recargar la lista
+      const refreshResult = await getSucursales();
+      if (refreshResult.success) {
+        setSucursales(refreshResult.data);
+      }
+      // Cerrar modal
+      setIsConfirmModalOpen(false);
+      setSelectedSucursal(null);
+    } else {
+      alert('Error al cambiar el estado: ' + result.message);
+    }
+
+    setIsTogglingStatus(false);
   };
 
   return (
@@ -151,27 +193,19 @@ function GestionComercios() {
                 Exportar CSV
               </button>
 
-              <button className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
+              <button
+                onClick={() => setShowInactive(!showInactive)}
+                className={`border px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
+                  showInactive
+                    ? 'bg-purple-600 text-white border-purple-600'
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-                Ver Inactivos
+                {showInactive ? 'Ver Solo Activos' : 'Ver Inactivos'}
               </button>
             </div>
           </div>
@@ -245,8 +279,11 @@ function GestionComercios() {
                           {sucursal.activo ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
+                      
+                      {/* ✅ Columna de Acciones - ACTUALIZADA */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-3">
+                          {/* Botón Editar */}
                           <button className="text-purple-600 hover:text-purple-900">
                             <svg
                               className="w-5 h-5"
@@ -262,27 +299,12 @@ function GestionComercios() {
                               />
                             </svg>
                           </button>
-                          <button
-                            className={
-                              sucursal.activo
-                                ? 'text-red-600 hover:text-red-900'
-                                : 'text-green-600 hover:text-green-900'
-                            }
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
+                          
+                          {/* Toggle Switch */}
+                          <ToggleSwitch 
+                            isActive={sucursal.activo}
+                            onToggle={() => handleToggleClick(sucursal)}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -293,6 +315,18 @@ function GestionComercios() {
           )}
         </div>
       </div>
+
+      {/* Modal de Confirmación - AGREGAR AL FINAL */}
+    <ConfirmToggleSucursalModal 
+      isOpen={isConfirmModalOpen}
+      onClose={() => {
+        setIsConfirmModalOpen(false);
+        setSelectedSucursal(null);
+      }}
+      onConfirm={handleConfirmToggle}
+      sucursal={selectedSucursal}
+      isLoading={isTogglingStatus}
+    />
     </div>
   );
 }

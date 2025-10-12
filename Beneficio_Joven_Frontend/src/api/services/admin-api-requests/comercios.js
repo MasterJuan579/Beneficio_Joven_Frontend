@@ -21,3 +21,25 @@ export const getSucursales = async () => {
     };
   }
 };
+
+/**
+ * Cambiar estado de sucursal (activar/desactivar)
+ */
+export const toggleSucursalStatus = async (idSucursal) => {
+  try {
+    const response = await axiosInstance.patch(`/admin/sucursales/${idSucursal}/toggle-status`);
+
+    return {
+      success: true,
+      data: response.data,
+      message: 'Estado actualizado exitosamente',
+    };
+  } catch (error) {
+    console.error('❌ Error al cambiar estado:', error);
+    
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Error al cambiar estado',
+    };
+  }
+};
