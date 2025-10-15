@@ -6,8 +6,7 @@ import { getSucursales, toggleSucursalStatus } from '../../api/services/admin-ap
 import ToggleSwitch from '../../components/common/ToggleSwitch';
 import ConfirmToggleSucursalModal from '../../components/admin/comercios/ConfirmToggleSucursalModal';
 import AddSucursalModal from '../../components/admin/comercios/AddSucursalModal';
-
-
+import AddEstablecimientoModal from '../../components/admin/comercios/AddEstablecimientoModal';
 
 function GestionComercios() {
   // Estados
@@ -18,27 +17,28 @@ function GestionComercios() {
   const [selectedSucursal, setSelectedSucursal] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddSucursalModalOpen, setIsAddSucursalModalOpen] = useState(false);
+  const [isAddEstablecimientoModalOpen, setIsAddEstablecimientoModalOpen] = useState(false);
 
   // Cargar sucursales al montar el componente
   useEffect(() => {
-    const fetchSucursales = async () => {
-      setIsLoading(true);
-      const result = await getSucursales();
-
-      if (result.success) {
-        setSucursales(result.data);
-      } else {
-        console.error('Error al cargar sucursales:', result.message);
-      }
-
-      setIsLoading(false);
-    };
-
     fetchSucursales();
   }, []);
 
-  // Filtrar sucursales por búsqueda (con ? por seguridad)
+  const fetchSucursales = async () => {
+    setIsLoading(true);
+    const result = await getSucursales();
+
+    if (result.success) {
+      setSucursales(result.data);
+    } else {
+      console.error('Error al cargar sucursales:', result.message);
+    }
+
+    setIsLoading(false);
+  };
+
+  // Filtrar sucursales por búsqueda y estado
   const filteredSucursales = sucursales.filter((sucursal) => {
     // Filtro por búsqueda
     const matchesSearch =
@@ -90,25 +90,20 @@ function GestionComercios() {
     document.body.removeChild(link);
   };
 
+  // Manejar Toggle de sucursal
   const handleToggleClick = (sucursal) => {
     setSelectedSucursal(sucursal);
     setIsConfirmModalOpen(true);
   };
 
-  //Manejar Toggle
   const handleConfirmToggle = async () => {
-  if (!selectedSucursal) return;
+    if (!selectedSucursal) return;
 
-  setIsTogglingStatus(true);
+    setIsTogglingStatus(true);
     const result = await toggleSucursalStatus(selectedSucursal.idSucursal);
 
     if (result.success) {
-      // Recargar la lista
-      const refreshResult = await getSucursales();
-      if (refreshResult.success) {
-        setSucursales(refreshResult.data);
-      }
-      // Cerrar modal
+      await fetchSucursales();
       setIsConfirmModalOpen(false);
       setSelectedSucursal(null);
     } else {
@@ -158,9 +153,32 @@ function GestionComercios() {
 
             {/* Botones de acción */}
             <div className="flex flex-wrap gap-3">
+              {/* Agregar Establecimiento */}
               <button 
-                onClick={() => setIsAddModalOpen(true)} 
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
+                onClick={() => setIsAddEstablecimientoModalOpen(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  />
+                </svg>
+                Agregar Establecimiento
+              </button>
+
+              {/* Agregar Sucursal */}
+              <button
+                onClick={() => setIsAddSucursalModalOpen(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2"
+              >
                 <svg
                   className="w-5 h-5"
                   fill="none"
@@ -174,9 +192,10 @@ function GestionComercios() {
                     d="M12 4v16m8-8H4"
                   />
                 </svg>
-                Agregar Comercio
+                Agregar Sucursal
               </button>
 
+              {/* Exportar CSV */}
               <button
                 onClick={handleExportCSV}
                 disabled={sucursales.length === 0}
@@ -198,6 +217,7 @@ function GestionComercios() {
                 Exportar CSV
               </button>
 
+              {/* Ver Inactivos */}
               <button
                 onClick={() => setShowInactive(!showInactive)}
                 className={`border px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
@@ -284,7 +304,6 @@ function GestionComercios() {
                           {sucursal.activo ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
-                      
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-3">
                           {/* Botón Editar */}
@@ -320,27 +339,31 @@ function GestionComercios() {
         </div>
       </div>
 
-      {/* Modal de Confirmación*/}
-    <ConfirmToggleSucursalModal 
-      isOpen={isConfirmModalOpen}
-      onClose={() => {
-        setIsConfirmModalOpen(false);
-        setSelectedSucursal(null);
-      }}
-      onConfirm={handleConfirmToggle}
-      sucursal={selectedSucursal}
-      isLoading={isTogglingStatus}
-    />
-    <AddSucursalModal 
-      isOpen={isAddModalOpen}
-      onClose={() => setIsAddModalOpen(false)}
-      onSucursalCreated={async () => {
-        const result = await getSucursales();
-        if (result.success) {
-          setSucursales(result.data);
-        }
-      }}
-    />
+      {/* Modal: Agregar Establecimiento */}
+      <AddEstablecimientoModal 
+        isOpen={isAddEstablecimientoModalOpen}
+        onClose={() => setIsAddEstablecimientoModalOpen(false)}
+        onEstablecimientoCreated={fetchSucursales}
+      />
+
+      {/* Modal: Agregar Sucursal */}
+      <AddSucursalModal 
+        isOpen={isAddSucursalModalOpen}
+        onClose={() => setIsAddSucursalModalOpen(false)}
+        onSucursalCreated={fetchSucursales}
+      />
+
+      {/* Modal: Confirmar Toggle */}
+      <ConfirmToggleSucursalModal 
+        isOpen={isConfirmModalOpen}
+        onClose={() => {
+          setIsConfirmModalOpen(false);
+          setSelectedSucursal(null);
+        }}
+        onConfirm={handleConfirmToggle}
+        sucursal={selectedSucursal}
+        isLoading={isTogglingStatus}
+      />
     </div>
   );
 }
