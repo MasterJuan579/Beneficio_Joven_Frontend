@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react';
 import Autocomplete from 'react-google-autocomplete';
 import { getEstablecimientos, createSucursal } from '../../../api/services/admin-api-requests/comercios';
+import ImageUploader from '../../common/ImageUploader';
 
 function AddSucursalModal({ isOpen, onClose, onSucursalCreated }) {
   const [establecimientos, setEstablecimientos] = useState([]);
   const [isLoadingEstablecimientos, setIsLoadingEstablecimientos] = useState(false);
   const [formData, setFormData] = useState({
     idEstablecimiento: '',
-    numSucursal: '',
     nombre: '',
     direccion: '',
     latitud: null,
     longitud: null,
     horaApertura: '',
-    horaCierre: ''
+    horaCierre: '',
+    imagenes: [] // ✅ agregar campo inicial
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,13 +29,13 @@ function AddSucursalModal({ isOpen, onClose, onSucursalCreated }) {
   const fetchEstablecimientos = async () => {
     setIsLoadingEstablecimientos(true);
     const result = await getEstablecimientos();
-    
+
     if (result.success) {
       setEstablecimientos(result.data);
     } else {
       setError('Error al cargar establecimientos');
     }
-    
+
     setIsLoadingEstablecimientos(false);
   };
 
@@ -62,9 +63,16 @@ function AddSucursalModal({ isOpen, onClose, onSucursalCreated }) {
     setIsLoading(true);
     setError('');
 
-    // Validación de horarios
+    // ✅ Validación de horarios
     if (formData.horaApertura >= formData.horaCierre) {
       setError('La hora de apertura debe ser antes que la hora de cierre');
+      setIsLoading(false);
+      return;
+    }
+
+    // ✅ Validación de imágenes (frontend)
+    if (formData.imagenes.length > 5) {
+      setError('Solo se permiten máximo 5 imágenes por sucursal');
       setIsLoading(false);
       return;
     }
@@ -84,13 +92,13 @@ function AddSucursalModal({ isOpen, onClose, onSucursalCreated }) {
   const handleClose = () => {
     setFormData({
       idEstablecimiento: '',
-      numSucursal: '',
       nombre: '',
       direccion: '',
       latitud: null,
       longitud: null,
       horaApertura: '',
-      horaCierre: ''
+      horaCierre: '',
+      imagenes: []
     });
     setError('');
     onClose();
@@ -149,39 +157,21 @@ function AddSucursalModal({ isOpen, onClose, onSucursalCreated }) {
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Número de Sucursal */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Número de Sucursal
-              </label>
-              <input
-                type="text"
-                name="numSucursal"
-                value={formData.numSucursal}
-                onChange={handleChange}
-                placeholder="S001"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                disabled={isLoading}
-              />
-            </div>
-
-            {/* Nombre */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre de la Sucursal *
-              </label>
-              <input
-                type="text"
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleChange}
-                placeholder="Sucursal Centro"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                required
-                disabled={isLoading}
-              />
-            </div>
+          {/* Nombre */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nombre de la Sucursal *
+            </label>
+            <input
+              type="text"
+              name="nombre"
+              value={formData.nombre}
+              onChange={handleChange}
+              placeholder="Sucursal Centro"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+              required
+              disabled={isLoading}
+            />
           </div>
 
           {/* Dirección con Autocomplete */}
@@ -193,7 +183,7 @@ function AddSucursalModal({ isOpen, onClose, onSucursalCreated }) {
               apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
               onPlaceSelected={handlePlaceSelected}
               options={{
-                types: ['address'],
+                types: ['establishment', 'geocode'],
                 componentRestrictions: { country: 'mx' }
               }}
               placeholder="Buscar dirección..."
@@ -238,6 +228,27 @@ function AddSucursalModal({ isOpen, onClose, onSucursalCreated }) {
                 disabled={isLoading}
               />
             </div>
+          </div>
+
+          {/* Imágenes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Imágenes de la sucursal (máx. 5)
+            </label>
+            <ImageUploader
+              folder="sucursales"
+              maxImages={5}
+              onImagesUploaded={(uploadedImages) => {
+                setFormData({
+                  ...formData,
+                  imagenes: uploadedImages // [{ url, publicId }]
+                });
+              }}
+              initialImages={formData.imagenes}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Puedes subir hasta 5 imágenes por sucursal.
+            </p>
           </div>
 
           {/* Botones */}
