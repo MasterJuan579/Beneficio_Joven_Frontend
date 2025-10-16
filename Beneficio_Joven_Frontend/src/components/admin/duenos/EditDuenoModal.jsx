@@ -1,6 +1,33 @@
+/**
+ * @file EditDuenoModal.jsx
+ * @description Componente modal para editar los datos de un dueño existente en el panel de administración.
+ * Carga los datos actuales del dueño, valida el formulario y envía la actualización al backend.
+ *
+ * @module components/admin/duenos/EditDuenoModal
+ * @version 1.0.0
+ */
+
 import { useState, useEffect } from 'react';
 import { updateDueno } from '../../../api/services/admin-api-requests/duenos';
 
+/**
+ * Modal para editar un dueño existente.
+ *
+ * @component
+ * @param {Object} props - Propiedades del componente.
+ * @param {boolean} props.isOpen - Indica si el modal está visible.
+ * @param {Function} props.onClose - Función para cerrar el modal.
+ * @param {Function} props.onDuenoUpdated - Callback ejecutado tras actualizar exitosamente al dueño.
+ * @param {{ idDueno: number|string, email: string, nombreUsuario: string }} props.dueno - Dueño seleccionado a editar.
+ *
+ * @example
+ * <EditDuenoModal
+ *   isOpen={isOpen}
+ *   onClose={() => setOpen(false)}
+ *   onDuenoUpdated={refetchDuenos}
+ *   dueno={selectedDueno}
+ * />
+ */
 function EditDuenoModal({ isOpen, onClose, onDuenoUpdated, dueno }) {
   const [formData, setFormData] = useState({
     email: '',
@@ -9,7 +36,11 @@ function EditDuenoModal({ isOpen, onClose, onDuenoUpdated, dueno }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Cargar los datos del dueño cuando se abre el modal
+  /**
+   * Carga los datos del dueño al abrir el modal o cambiar el dueño seleccionado.
+   * @function
+   * @private
+   */
   useEffect(() => {
     if (dueno) {
       setFormData({
@@ -19,6 +50,10 @@ function EditDuenoModal({ isOpen, onClose, onDuenoUpdated, dueno }) {
     }
   }, [dueno]);
 
+  /**
+   * Maneja los cambios de los campos del formulario.
+   * @param {React.ChangeEvent<HTMLInputElement>} e - Evento de cambio.
+   */
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -27,6 +62,11 @@ function EditDuenoModal({ isOpen, onClose, onDuenoUpdated, dueno }) {
     if (error) setError('');
   };
 
+  /**
+   * Envía la actualización de datos del dueño al backend.
+   * @async
+   * @param {React.FormEvent} e - Evento de envío del formulario.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -35,10 +75,7 @@ function EditDuenoModal({ isOpen, onClose, onDuenoUpdated, dueno }) {
     const result = await updateDueno(dueno.idDueno, formData);
 
     if (result.success) {
-      // Notificar al padre que se actualizó el dueño
       onDuenoUpdated();
-      
-      // Cerrar modal
       onClose();
     } else {
       setError(result.message);
@@ -47,6 +84,10 @@ function EditDuenoModal({ isOpen, onClose, onDuenoUpdated, dueno }) {
     setIsLoading(false);
   };
 
+  /**
+   * Limpia el estado de error y cierra el modal.
+   * @function
+   */
   const handleClose = () => {
     setError('');
     onClose();

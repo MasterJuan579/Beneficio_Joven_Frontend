@@ -1,12 +1,30 @@
+/**
+ * @file AdminDashboard.jsx
+ * @description Página principal del panel de control administrativo.
+ * Muestra un resumen general con estadísticas clave y accesos directos a las secciones principales del sistema.
+ *
+ * @module pages/admin/AdminDashboard
+ * @version 1.0.0
+ */
+
 import { useAuth } from "../../context/AuthContext";
 import { useState, useEffect } from "react";
 import { getDashboardStats } from "../../api/services/admin-api-requests/dashboard";
 import AdminNavbar from "../../components/common/AdminNavbar";
 
+/**
+ * Componente que representa el panel principal del administrador.
+ *
+ * @component
+ * @example
+ * return (
+ *   <AdminDashboard />
+ * )
+ */
 function AdminDashboard() {
   const { user } = useAuth();
 
-  // Estado para las estadísticas
+  // Estado local para estadísticas del panel
   const [stats, setStats] = useState({
     beneficiariosRegistrados: 0,
     comerciosAfiliados: 0,
@@ -14,7 +32,10 @@ function AdminDashboard() {
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  // Cargar estadísticas al montar el componente
+  /**
+   * Carga las estadísticas del backend al montar el componente.
+   * Utiliza el servicio `getDashboardStats` desde `/api/services/admin-api-requests/dashboard.js`.
+   */
   useEffect(() => {
     const fetchStats = async () => {
       setIsLoadingStats(true);
@@ -32,15 +53,14 @@ function AdminDashboard() {
     fetchStats();
   }, []);
 
-
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
-      {/* Navbar (ya es un componente completo) */}
+      {/* Barra de navegación superior */}
       <AdminNavbar />
 
-      {/* Contenido Principal */}
+      {/* Contenedor principal */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Título */}
+        {/* Encabezado */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
             Panel de Control Administrativo
@@ -51,7 +71,7 @@ function AdminDashboard() {
           </p>
         </div>
 
-        {/* Acciones Principales */}
+        {/* Sección: Acciones principales */}
         <div>
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
             Acciones Principales
@@ -87,7 +107,7 @@ function AdminDashboard() {
                 <div className="bg-purple-100 p-3 rounded-lg">
                   <img
                     src="../src/assets/icons/icono-tienda.png"
-                    alt="Validar Tarjeta"
+                    alt="Gestión de Comercios"
                     className="w-8 h-8"
                   />
                 </div>
@@ -110,7 +130,7 @@ function AdminDashboard() {
                 <div className="bg-purple-100 p-3 rounded-lg">
                   <img
                     src="../src/assets/icons/icono-usuario.png"
-                    alt="Validar Tarjeta"
+                    alt="Gestión de Beneficiarios"
                     className="w-8 h-8"
                   />
                 </div>
@@ -133,7 +153,7 @@ function AdminDashboard() {
                 <div className="bg-purple-100 p-3 rounded-lg">
                   <img
                     src="../src/assets/icons/icono-reporte.png"
-                    alt="Validar Tarjeta"
+                    alt="Reportes y Estadísticas"
                     className="w-8 h-8"
                   />
                 </div>
@@ -152,14 +172,14 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Estadísticas Rápidas */}
+        {/* Sección: Estadísticas rápidas */}
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
             Estadísticas Rápidas
           </h2>
 
           {isLoadingStats ? (
-            // Skeleton loader mientras carga
+            // Loader mientras se cargan las estadísticas
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
                 <div
