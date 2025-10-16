@@ -1,3 +1,14 @@
+/* ==========================================================================
+   Base Styles - Proyecto React (Vite)
+   Archivo: src/index.css
+   Descripción:
+   Estilos base del entorno de desarrollo y del layout principal.
+   Incluye animaciones, estilos de logo y componentes genéricos.
+   ========================================================================== */
+
+/* ===========================
+   Contenedor raíz del proyecto
+   =========================== */
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -5,19 +16,29 @@
   text-align: center;
 }
 
+/* ===========================
+   Logo principal
+   =========================== */
 .logo {
   height: 6em;
   padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+  will-change: filter; /* Mejora el rendimiento de transiciones */
+  transition: filter 300ms ease;
 }
+
+/* Efecto hover para logos genéricos */
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
+/* Efecto hover específico para el logo de React */
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
+/* ===========================
+   Animación: Rotación de logo
+   =========================== */
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);
@@ -27,16 +48,26 @@
   }
 }
 
+/* ===========================
+   Animación condicional
+   (Solo si no hay preferencia por movimiento reducido)
+   =========================== */
 @media (prefers-reduced-motion: no-preference) {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
   }
 }
 
+/* ===========================
+   Tarjeta genérica
+   =========================== */
 .card {
   padding: 2em;
 }
 
+/* ===========================
+   Texto auxiliar
+   =========================== */
 .read-the-docs {
   color: #888;
 }

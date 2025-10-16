@@ -1,4 +1,13 @@
-// src/pages/admin/GestionDuenos.jsx
+/**
+ * @file GestionDuenos.jsx
+ * @description Página de administración para gestionar dueños.
+ * Permite buscar, filtrar por estado, exportar CSV, crear, editar
+ * y activar/desactivar dueños mediante modales.
+ *
+ * @module pages/admin/GestionDuenos
+ * @version 1.0.0
+ */
+
 import { useState, useEffect } from 'react';
 import AdminNavbar from '../../components/common/AdminNavbar';
 import { getDuenos, toggleDuenoStatus } from '../../api/services/admin-api-requests/duenos';
@@ -8,63 +17,85 @@ import ConfirmToggleModal from '../../components/admin/duenos/ConfirmToggleModal
 import ToggleSwitch from '../../components/common/ToggleSwitch';
 import Papa from 'papaparse';
 
-
+/**
+ * Página de gestión de dueños.
+ *
+ * @component
+ * @example
+ * return <GestionDuenos />
+ */
 function GestionDuenos() {
-  // Estados
+  // Estado general de la vista
   const [duenos, setDuenos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
+
+  // Estado para acciones y modales
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDueno, setSelectedDueno] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedDuenoForEdit, setSelectedDuenoForEdit] = useState(null);
-  const [showInactive, setShowInactive] = useState(false);
 
-
-  // Cargar dueños al montar el componente
+  /**
+   * Carga inicial de dueños al montar el componente.
+   */
   useEffect(() => {
     fetchDuenos();
   }, []);
 
+  /**
+   * Consulta la lista de dueños desde el backend y actualiza el estado.
+   * @async
+   * @function fetchDuenos
+   */
   const fetchDuenos = async () => {
-    console.log('🔄 Iniciando carga de dueños...');
     setIsLoading(true);
     const result = await getDuenos();
+
     if (result.success) {
-      console.log('✅ Dueños recibidos:', result.data.length, 'registros');
-      console.log('📋 Datos completos:', result.data);
       setDuenos(result.data);
     } else {
-      console.error('❌ Error al cargar dueños:', result.message);
+      console.error('Error al cargar dueños:', result.message);
     }
 
     setIsLoading(false);
   };
 
-  // Filtrar dueños por búsqueda (con fallback de strings para evitar errores)
+  /**
+   * Lista filtrada de dueños según término de búsqueda y estado seleccionado.
+   * - Búsqueda por nombre de usuario y correo electrónico.
+   * - Si `showInactive` es false, sólo muestra activos.
+   */
   const filteredDuenos = duenos.filter((dueno) => {
-    // Filtro por búsqueda
-    const matchesSearch = 
+    const matchesSearch =
       (dueno?.nombreUsuario || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (dueno?.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Filtro por estado (si showInactive es false, solo mostrar activos)
+
     const matchesStatus = showInactive ? true : dueno.activo;
-    
+
     return matchesSearch && matchesStatus;
   });
 
-  // Manejar el toggle de Activar / Desactivar
+  /**
+   * Abre el modal de confirmación para activar/desactivar un dueño.
+   * @param {Object} dueno - Dueño seleccionado para el cambio de estado.
+   */
   const handleToggleClick = (dueno) => {
     setSelectedDueno(dueno);
     setIsConfirmModalOpen(true);
   };
 
+  /**
+   * Confirma el cambio de estado del dueño seleccionado y refresca la lista.
+   * @async
+   * @function handleConfirmToggle
+   */
   const handleConfirmToggle = async () => {
     if (!selectedDueno) return;
-    
+
     setIsTogglingStatus(true);
     const result = await toggleDuenoStatus(selectedDueno.idDueno);
 
@@ -79,48 +110,46 @@ function GestionDuenos() {
     setIsTogglingStatus(false);
   };
 
-    // Función para abrir modal de edición
+  /**
+   * Abre el modal de edición con el dueño seleccionado.
+   * @param {Object} dueno - Dueño a editar.
+   */
   const handleEditClick = (dueno) => {
     setSelectedDuenoForEdit(dueno);
     setIsEditModalOpen(true);
   };
 
+  /**
+   * Exporta a CSV la lista completa de dueños cargados en memoria.
+   * Usa `papaparse` para generar el archivo y lo descarga en el navegador.
+   * @function handleExportCSV
+   */
   const handleExportCSV = () => {
-    // Preparar datos para CSV
     const dataToExport = duenos.map((dueno) => ({
-      'ID': dueno.idDueno,
+      ID: dueno.idDueno,
       'Nombre de Usuario': dueno.nombreUsuario,
-      'Email': dueno.email,
-      'Establecimientos': dueno.cantidadEstablecimientos || 0,
-      'Estado': dueno.activo ? 'Activo' : 'Inactivo',
+      Email: dueno.email,
+      Establecimientos: dueno.cantidadEstablecimientos || 0,
+      Estado: dueno.activo ? 'Activo' : 'Inactivo',
       'Fecha Registro': dueno.fechaRegistro
         ? new Date(dueno.fechaRegistro).toLocaleDateString('es-MX')
         : '',
     }));
 
-    // Convertir a CSV
-    const csv = Papa.unparse(dataToExport, {
-      quotes: true,
-      header: true,
-    });
+    const csv = Papa.unparse(dataToExport, { quotes: true, header: true });
 
-    // Crear blob y descargar
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
 
     link.setAttribute('href', url);
-    link.setAttribute(
-      'download',
-      `duenos_${new Date().toISOString().split('T')[0]}.csv`
-    );
+    link.setAttribute('download', `duenos_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
-
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
@@ -156,9 +185,8 @@ function GestionDuenos() {
             </div>
 
             {/* Botones */}
-
-            {/*Botón Agregar Dueño */}
             <div className="flex gap-3">
+              {/* Agregar Dueño */}
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2"
@@ -169,7 +197,7 @@ function GestionDuenos() {
                 Agregar Dueño
               </button>
 
-              {/*Botón Exportar CSV */}
+              {/* Exportar CSV */}
               <button
                 onClick={handleExportCSV}
                 disabled={duenos.length === 0}
@@ -181,7 +209,7 @@ function GestionDuenos() {
                 Exportar CSV
               </button>
 
-              {/* Botón Ver Inactivos */}
+              {/* Ver Inactivos */}
               <button
                 onClick={() => setShowInactive(!showInactive)}
                 className={`border px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
@@ -197,15 +225,13 @@ function GestionDuenos() {
                 {showInactive ? 'Ver Solo Activos' : 'Ver Inactivos'}
               </button>
             </div>
-
-
           </div>
         </div>
 
         {/* Tabla */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {isLoading ? (
-            // Loading State
+            // Estado de carga
             <div className="p-8">
               <div className="animate-pulse space-y-4">
                 {[1, 2, 3].map((i) => (
@@ -214,12 +240,12 @@ function GestionDuenos() {
               </div>
             </div>
           ) : filteredDuenos.length === 0 ? (
-            // Estado Sin Resultados
+            // Sin resultados
             <div className="text-center py-12">
               <p className="text-gray-500">No se encontraron dueños</p>
             </div>
           ) : (
-            // Tabla con Datos
+            // Tabla con datos
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 {/* Encabezados */}
@@ -282,6 +308,7 @@ function GestionDuenos() {
                           <button 
                             onClick={() => handleEditClick(dueno)}
                             className="text-purple-600 hover:text-purple-900"
+                            aria-label="Editar dueño"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -323,6 +350,7 @@ function GestionDuenos() {
         isLoading={isTogglingStatus}
       />
 
+      {/* Modal: Editar Dueño */}
       <EditDuenoModal 
         isOpen={isEditModalOpen}
         onClose={() => {

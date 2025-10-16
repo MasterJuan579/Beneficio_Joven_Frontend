@@ -1,6 +1,31 @@
+/**
+ * @file AddDuenoModal.jsx
+ * @description Componente modal que permite registrar un nuevo dueño en el panel de administración.
+ * Incluye validaciones básicas, manejo de errores y comunicación con el backend mediante el servicio createDueno.
+ *
+ * @module components/admin/duenos/AddDuenoModal
+ * @version 1.0.0
+ */
+
 import { useState } from 'react';
 import { createDueno } from '../../../api/services/admin-api-requests/duenos';
 
+/**
+ * Modal para agregar un nuevo dueño.
+ *
+ * @component
+ * @param {Object} props - Propiedades del componente.
+ * @param {boolean} props.isOpen - Indica si el modal está visible.
+ * @param {Function} props.onClose - Función para cerrar el modal.
+ * @param {Function} props.onDuenoCreated - Callback que se ejecuta tras crear exitosamente un nuevo dueño.
+ *
+ * @example
+ * <AddDuenoModal
+ *   isOpen={isModalOpen}
+ *   onClose={() => setModalOpen(false)}
+ *   onDuenoCreated={loadDuenos}
+ * />
+ */
 function AddDuenoModal({ isOpen, onClose, onDuenoCreated }) {
   const [formData, setFormData] = useState({
     email: '',
@@ -10,6 +35,10 @@ function AddDuenoModal({ isOpen, onClose, onDuenoCreated }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * Maneja los cambios en los campos del formulario.
+   * @param {React.ChangeEvent<HTMLInputElement>} e - Evento de cambio en los campos del formulario.
+   */
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -18,6 +47,11 @@ function AddDuenoModal({ isOpen, onClose, onDuenoCreated }) {
     if (error) setError('');
   };
 
+  /**
+   * Envía los datos del formulario para crear un nuevo dueño.
+   * @async
+   * @param {React.FormEvent} e - Evento de envío del formulario.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -26,17 +60,12 @@ function AddDuenoModal({ isOpen, onClose, onDuenoCreated }) {
     const result = await createDueno(formData);
 
     if (result.success) {
-      // Limpiar formulario
       setFormData({
         email: '',
         nombreUsuario: '',
         password: ''
       });
-      
-      // Notificar al padre que se creó el dueño
       onDuenoCreated();
-      
-      // Cerrar modal
       onClose();
     } else {
       setError(result.message);
@@ -45,6 +74,10 @@ function AddDuenoModal({ isOpen, onClose, onDuenoCreated }) {
     setIsLoading(false);
   };
 
+  /**
+   * Limpia los campos del formulario y cierra el modal.
+   * @function
+   */
   const handleClose = () => {
     setFormData({
       email: '',
@@ -103,7 +136,7 @@ function AddDuenoModal({ isOpen, onClose, onDuenoCreated }) {
             />
           </div>
 
-          {/* Nombre Usuario */}
+          {/* Nombre de Usuario */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nombre de Usuario *
@@ -137,7 +170,7 @@ function AddDuenoModal({ isOpen, onClose, onDuenoCreated }) {
               disabled={isLoading}
             />
             <p className="text-xs text-gray-500 mt-1">
-              La contraseña debe tener al menos 8 caracteres
+              La contraseña debe tener al menos 8 caracteres.
             </p>
           </div>
 

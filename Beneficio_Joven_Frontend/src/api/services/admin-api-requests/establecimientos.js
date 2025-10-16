@@ -1,7 +1,25 @@
+/**
+ * @file establecimientos.js
+ * @description Módulo de servicios del panel de administración para la gestión de establecimientos y categorías.
+ * Contiene funciones para obtener listas de establecimientos, categorías y crear nuevos registros mediante Axios.
+ *
+ * @module api/services/admin-api-requests/establecimientos
+ * @version 1.0.0
+ */
+
 import axiosInstance from '../../interceptors/authInterceptor';
 
 /**
- * Obtener lista de establecimientos
+ * Obtiene la lista completa de establecimientos registrados en el sistema.
+ *
+ * @async
+ * @function getEstablecimientos
+ * @returns {Promise<{success: boolean, data?: Object[], total?: number, message?: string}>}
+ * Devuelve un objeto con la lista de establecimientos o un mensaje de error.
+ *
+ * @example
+ * const { success, data } = await getEstablecimientos();
+ * if (success) console.log('Establecimientos:', data);
  */
 export const getEstablecimientos = async () => {
   try {
@@ -13,7 +31,7 @@ export const getEstablecimientos = async () => {
       total: response.data.total,
     };
   } catch (error) {
-    console.error('❌ Error al obtener establecimientos:', error);
+    console.error('Error al obtener establecimientos:', error);
 
     return {
       success: false,
@@ -23,7 +41,16 @@ export const getEstablecimientos = async () => {
 };
 
 /**
- * Obtener lista de categorías
+ * Obtiene la lista de categorías de establecimientos.
+ *
+ * @async
+ * @function getCategorias
+ * @returns {Promise<{success: boolean, data?: Object[], message?: string}>}
+ * Devuelve un objeto con la lista de categorías o un mensaje de error.
+ *
+ * @example
+ * const { success, data } = await getCategorias();
+ * if (success) console.log('Categorías:', data);
  */
 export const getCategorias = async () => {
   try {
@@ -34,29 +61,39 @@ export const getCategorias = async () => {
       data: response.data.data,
     };
   } catch (error) {
-    console.error('❌ Error al obtener categorías:', error);
+    console.error('Error al obtener categorías:', error);
 
     return {
       success: false,
       message: error.response?.data?.message || 'Error al obtener categorías',
-      data: [] // Array vacío como fallback
+      data: [], // Retorna array vacío como valor de respaldo
     };
   }
 };
 
 /**
- * Crear nuevo establecimiento
- * @param {Object} establecimientoData - Datos del establecimiento a crear
- * Ejemplo:
- * {
+ * Crea un nuevo establecimiento en el sistema.
+ *
+ * @async
+ * @function createEstablecimiento
+ * @param {Object} establecimientoData - Datos del nuevo establecimiento a registrar.
+ * @param {string} establecimientoData.nombre - Nombre del establecimiento.
+ * @param {string} establecimientoData.logoURL - URL del logo (por ejemplo, alojado en Cloudinary).
+ * @param {number} establecimientoData.idCategoria - ID de la categoría asignada.
+ * @throws {Error} Si faltan campos requeridos como nombre o categoría.
+ * @returns {Promise<{success: boolean, data?: Object, message: string, errors?: Array}>}
+ * Devuelve un objeto con el estado de creación y los datos resultantes.
+ *
+ * @example
+ * await createEstablecimiento({
  *   nombre: "Starbucks",
  *   logoURL: "https://res.cloudinary.com/.../logo.png",
  *   idCategoria: 3
- * }
+ * });
  */
 export const createEstablecimiento = async (establecimientoData) => {
   try {
-    // Validación rápida antes del envío (opcional, por UX)
+    // Validación rápida antes del envío
     if (!establecimientoData.nombre?.trim()) {
       throw new Error('El nombre del establecimiento es requerido');
     }
@@ -73,7 +110,7 @@ export const createEstablecimiento = async (establecimientoData) => {
       message: response.data.message || 'Establecimiento creado exitosamente',
     };
   } catch (error) {
-    console.error('❌ Error al crear establecimiento:', error);
+    console.error('Error al crear establecimiento:', error);
 
     return {
       success: false,

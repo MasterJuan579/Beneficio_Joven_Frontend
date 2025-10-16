@@ -1,7 +1,29 @@
+/**
+ * @file Login.jsx
+ * @description Página de inicio de sesión. Valida credenciales contra el contexto de autenticación,
+ * maneja estados de carga/errores y redirige según el rol del usuario.
+ *
+ * Rutas de destino por rol:
+ * - administrador  -> /admin/dashboard
+ * - dueno          -> /comercio/dashboard
+ * - beneficiario   -> /beneficiario/dashboard
+ * - fallback       -> /dashboard
+ *
+ * @module pages/Login
+ * @version 1.0.0
+ */
+
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * Página de inicio de sesión.
+ *
+ * @component
+ * @example
+ * return <Login />
+ */
 function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -14,6 +36,10 @@ function Login() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * Maneja el cambio de los campos del formulario y limpia errores.
+   * @param {React.ChangeEvent<HTMLInputElement>} e - Evento de cambio del input.
+   */
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -22,6 +48,11 @@ function Login() {
     if (error) setError('');
   };
 
+  /**
+   * Envía las credenciales para iniciar sesión. Redirige según el rol recibido.
+   * @async
+   * @param {React.FormEvent<HTMLFormElement>} e - Evento de envío del formulario.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -31,11 +62,8 @@ function Login() {
       const result = await login(formData.email, formData.password);
       
       if (result.success) {
-        console.log("Login exitoso:", result.data);
-        
-        // AGREGAR: Redirigir según el role
         const { role } = result.data.user;
-        
+
         if (role === 'administrador') {
           navigate('/admin/dashboard');
         } else if (role === 'dueno') {
@@ -43,7 +71,7 @@ function Login() {
         } else if (role === 'beneficiario') {
           navigate('/beneficiario/dashboard');
         } else {
-          navigate('/dashboard'); // Fallback por si acaso
+          navigate('/dashboard');
         }
         
       } else {
@@ -92,48 +120,52 @@ function Login() {
 
           {/* Mensaje de Error */}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm" role="alert">
               {error}
             </div>
           )}
 
           {/* Formulario */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {/* Campo Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
                 Email
               </label>
               <input
+                id="email"
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="Ingresa tu email"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                autoComplete="email"
                 required
-                disabled={isLoading} // ← Deshabilita mientras carga
+                disabled={isLoading}
               />
             </div>
 
             {/* Campo Contraseña */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="password">
                 Contraseña
               </label>
               <input
+                id="password"
                 type="password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Ingresa tu contraseña"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                autoComplete="current-password"
                 required
-                disabled={isLoading} // ← Deshabilita mientras carga
+                disabled={isLoading}
               />
             </div>
 
-            {/* Olvidé mi contraseña */}
+            {/* Olvidé mi contraseña (placeholder) */}
             <div className="text-right">
               <a
                 href="#"
@@ -146,8 +178,9 @@ function Login() {
             {/* Botón Ingresar */}
             <button
               type="submit"
-              disabled={isLoading} // ← Deshabilita mientras carga
+              disabled={isLoading}
               className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2.5 rounded-lg transition duration-200 disabled:bg-purple-300 disabled:cursor-not-allowed flex items-center justify-center"
+              aria-busy={isLoading}
             >
               {isLoading ? (
                 <>
@@ -156,6 +189,7 @@ function Login() {
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
                     <circle
                       className="opacity-25"

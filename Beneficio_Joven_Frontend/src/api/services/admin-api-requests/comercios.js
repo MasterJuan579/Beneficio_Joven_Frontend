@@ -1,7 +1,26 @@
+/**
+ * @file comercios.js
+ * @description Módulo de servicios para la gestión de sucursales y establecimientos
+ * dentro del panel de administración del sistema Beneficio Joven.
+ * Incluye funciones para obtener, crear y actualizar sucursales usando Axios con interceptores de autenticación.
+ *
+ * @module api/services/admin-api-requests/comercios
+ * @version 1.0.0
+ */
+
 import axiosInstance from '../../interceptors/authInterceptor';
 
 /**
- * 🏢 Obtener lista de sucursales (comercios)
+ * Obtiene la lista de sucursales (comercios) registradas en el sistema.
+ *
+ * @async
+ * @function getSucursales
+ * @returns {Promise<{success: boolean, data?: Object[], total?: number, message?: string}>}
+ * Devuelve un objeto con el estado de la operación y los datos obtenidos.
+ *
+ * @example
+ * const { success, data } = await getSucursales();
+ * if (success) console.log(data);
  */
 export const getSucursales = async () => {
   try {
@@ -12,8 +31,8 @@ export const getSucursales = async () => {
       total: response.data.total,
     };
   } catch (error) {
-    console.error('❌ Error al obtener sucursales:', error.message);
-    console.error('🔎 Stack:', error.stack);
+    console.error('Error al obtener sucursales:', error.message);
+    console.error('Stack:', error.stack);
 
     return {
       success: false,
@@ -23,7 +42,16 @@ export const getSucursales = async () => {
 };
 
 /**
- * 🔄 Cambiar estado de sucursal (activar/desactivar)
+ * Cambia el estado de una sucursal (activar o desactivar).
+ *
+ * @async
+ * @function toggleSucursalStatus
+ * @param {string|number} idSucursal - ID único de la sucursal a modificar.
+ * @returns {Promise<{success: boolean, data?: Object, message: string}>}
+ * Devuelve la respuesta del servidor con el nuevo estado.
+ *
+ * @example
+ * await toggleSucursalStatus(12);
  */
 export const toggleSucursalStatus = async (idSucursal) => {
   try {
@@ -37,7 +65,7 @@ export const toggleSucursalStatus = async (idSucursal) => {
       message: 'Estado actualizado exitosamente',
     };
   } catch (error) {
-    console.error('❌ Error al cambiar estado de sucursal:', error);
+    console.error('Error al cambiar estado de sucursal:', error);
 
     return {
       success: false,
@@ -47,7 +75,16 @@ export const toggleSucursalStatus = async (idSucursal) => {
 };
 
 /**
- * 🏬 Obtener lista de establecimientos
+ * Obtiene la lista de establecimientos registrados en la base de datos.
+ *
+ * @async
+ * @function getEstablecimientos
+ * @returns {Promise<{success: boolean, data?: Object[], total?: number, message?: string}>}
+ * Devuelve los establecimientos disponibles.
+ *
+ * @example
+ * const { data } = await getEstablecimientos();
+ * console.log(data);
  */
 export const getEstablecimientos = async () => {
   try {
@@ -58,7 +95,7 @@ export const getEstablecimientos = async () => {
       total: response.data.total,
     };
   } catch (error) {
-    console.error('❌ Error al obtener establecimientos:', error);
+    console.error('Error al obtener establecimientos:', error);
     return {
       success: false,
       message:
@@ -68,31 +105,43 @@ export const getEstablecimientos = async () => {
 };
 
 /**
- * ➕ Crear nueva sucursal
+ * Crea una nueva sucursal en el sistema.
+ *
+ * @async
+ * @function createSucursal
+ * @param {Object} sucursalData - Datos de la nueva sucursal a registrar.
+ * @param {string} sucursalData.nombre - Nombre de la sucursal.
+ * @param {string} sucursalData.direccion - Dirección física de la sucursal.
+ * @param {string[]} [sucursalData.imagenes] - Lista opcional de URLs o archivos de imágenes.
+ * @throws {Error} Si se excede el límite de imágenes permitido (máximo 5).
+ * @returns {Promise<{success: boolean, data?: Object, message: string, errors?: Array}>}
+ * Respuesta del servidor con estado de creación.
+ *
+ * @example
+ * await createSucursal({ nombre: "Sucursal Centro", direccion: "Av. Principal 123" });
  */
 export const createSucursal = async (sucursalData) => {
   try {
-    // Validación rápida en frontend (opcional)
     if (sucursalData.imagenes && sucursalData.imagenes.length > 5) {
       throw new Error('Solo se permiten máximo 5 imágenes por sucursal.');
     }
 
-    // Llamada al nuevo endpoint de creación
-    const response = await axiosInstance.post('/admin/post/sucursales', sucursalData);
+    const response = await axiosInstance.post(
+      '/admin/post/sucursales',
+      sucursalData
+    );
 
     return {
       success: true,
       data: response.data.data,
-      message:
-        response.data.message || 'Sucursal creada exitosamente',
+      message: response.data.message || 'Sucursal creada exitosamente',
     };
   } catch (error) {
-    console.error('❌ Error al crear sucursal:', error);
+    console.error('Error al crear sucursal:', error);
 
     return {
       success: false,
-      message:
-        error.response?.data?.message || 'Error al crear sucursal',
+      message: error.response?.data?.message || 'Error al crear sucursal',
       errors: error.response?.data?.errors || [],
     };
   }

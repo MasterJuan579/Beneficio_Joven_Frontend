@@ -1,25 +1,60 @@
+/**
+ * @file AddEstablecimientoModal.jsx
+ * @description Componente modal que permite crear un nuevo establecimiento en el panel de administración.
+ * Gestiona la carga de categorías, validaciones del formulario y subida de imágenes de logo.
+ *
+ * @module components/admin/comercios/AddEstablecimientoModal
+ * @version 1.0.0
+ */
+
 import { useState, useEffect } from 'react';
 import { createEstablecimiento, getCategorias } from '../../../api/services/admin-api-requests/establecimientos';
 import ImageUploader from '../../common/ImageUploader';
 
+/**
+ * Modal para agregar un nuevo establecimiento.
+ *
+ * @component
+ * @param {Object} props - Propiedades del componente.
+ * @param {boolean} props.isOpen - Indica si el modal está visible.
+ * @param {Function} props.onClose - Función para cerrar el modal.
+ * @param {Function} props.onEstablecimientoCreated - Callback ejecutado después de crear un establecimiento exitosamente.
+ *
+ * @example
+ * <AddEstablecimientoModal
+ *   isOpen={isModalOpen}
+ *   onClose={() => setModalOpen(false)}
+ *   onEstablecimientoCreated={loadEstablecimientos}
+ * />
+ */
 function AddEstablecimientoModal({ isOpen, onClose, onEstablecimientoCreated }) {
   const [formData, setFormData] = useState({
     nombre: '',
-    idCategoria: '', // ← Cambio: ahora es idCategoria
+    idCategoria: '',
     logoURL: ''
   });
-  const [categorias, setCategorias] = useState([]); // ← NUEVO
-  const [isLoadingCategorias, setIsLoadingCategorias] = useState(false); // ← NUEVO
+  const [categorias, setCategorias] = useState([]);
+  const [isLoadingCategorias, setIsLoadingCategorias] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ Cargar categorías al abrir el modal
+  /**
+   * Carga las categorías disponibles cuando el modal se abre.
+   * @function
+   * @private
+   */
   useEffect(() => {
     if (isOpen) {
       fetchCategorias();
     }
   }, [isOpen]);
 
+  /**
+   * Obtiene las categorías desde el backend.
+   * @async
+   * @function
+   * @private
+   */
   const fetchCategorias = async () => {
     setIsLoadingCategorias(true);
     const result = await getCategorias();
@@ -33,6 +68,10 @@ function AddEstablecimientoModal({ isOpen, onClose, onEstablecimientoCreated }) 
     setIsLoadingCategorias(false);
   };
 
+  /**
+   * Maneja los cambios en los campos del formulario.
+   * @param {React.ChangeEvent<HTMLInputElement|HTMLSelectElement>} e - Evento de cambio.
+   */
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -41,17 +80,25 @@ function AddEstablecimientoModal({ isOpen, onClose, onEstablecimientoCreated }) 
     if (error) setError('');
   };
 
+  /**
+   * Maneja la imagen cargada desde el componente de subida.
+   * @param {string} url - URL de la imagen subida.
+   */
   const handleImageUploaded = (url) => {
     setFormData({ ...formData, logoURL: url });
     if (error) setError('');
   };
 
+  /**
+   * Maneja el envío del formulario y crea un nuevo establecimiento.
+   * @async
+   * @param {React.FormEvent} e - Evento de envío del formulario.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Validación básica
     if (!formData.nombre.trim()) {
       setError('El nombre es requerido');
       setIsLoading(false);
@@ -70,15 +117,16 @@ function AddEstablecimientoModal({ isOpen, onClose, onEstablecimientoCreated }) 
       onEstablecimientoCreated();
       handleClose();
     } else {
-      setError(result.message);
-      if (result.errors && result.errors.length > 0) {
-        setError(result.errors.join(', '));
-      }
+      setError(result.errors?.length ? result.errors.join(', ') : result.message);
     }
 
     setIsLoading(false);
   };
 
+  /**
+   * Cierra el modal y limpia los campos del formulario.
+   * @function
+   */
   const handleClose = () => {
     setFormData({
       nombre: '',
@@ -114,14 +162,14 @@ function AddEstablecimientoModal({ isOpen, onClose, onEstablecimientoCreated }) 
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           
-          {/* Mensaje de Error */}
+          {/* Error Message */}
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-              ❌ {error}
+              {error}
             </div>
           )}
 
-          {/* Nombre del Establecimiento */}
+          {/* Nombre */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nombre del Establecimiento *
@@ -138,7 +186,7 @@ function AddEstablecimientoModal({ isOpen, onClose, onEstablecimientoCreated }) 
             />
           </div>
 
-          {/* Categoría - ACTUALIZADO */}
+          {/* Categoría */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Categoría *
@@ -172,24 +220,22 @@ function AddEstablecimientoModal({ isOpen, onClose, onEstablecimientoCreated }) 
           </div>
 
           {/* Logo */}
-        <div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-                Logo del Establecimiento
+              Logo del Establecimiento
             </label>
             <ImageUploader
-                onImagesUploaded={(images) => {
-                // El componente devuelve un arreglo [{url, publicId}]
+              onImagesUploaded={(images) => {
                 setFormData({ ...formData, logoURL: images[0]?.url || '' });
-                }}
-                folder="logos"
-                maxImages={1}
-                initialImages={formData.logoURL ? [{ url: formData.logoURL }] : []}
+              }}
+              folder="logos"
+              maxImages={1}
+              initialImages={formData.logoURL ? [{ url: formData.logoURL }] : []}
             />
             <p className="text-xs text-gray-500 mt-2">
-                Opcional. El logo se mostrará en la aplicación móvil y en el panel web.
+              Opcional. El logo se mostrará en la aplicación móvil y en el panel web.
             </p>
-        </div>
-
+          </div>
 
           {/* Botones */}
           <div className="flex gap-3 pt-4">
@@ -219,9 +265,7 @@ function AddEstablecimientoModal({ isOpen, onClose, onEstablecimientoCreated }) 
               )}
             </button>
           </div>
-
         </form>
-
       </div>
     </div>
   );

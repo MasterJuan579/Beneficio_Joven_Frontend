@@ -1,17 +1,50 @@
+/**
+ * @file ReportesDashboard.jsx
+ * @description Página de reportes y dashboard administrativo.
+ * Consume el servicio `getAdminReports` para mostrar KPIs y gráficas (ECharts) de:
+ * - Aplicaciones por mes (línea)
+ * - Top establecimientos por aplicaciones (barras)
+ * - Top categorías por establecimientos (barras)
+ *
+ * @module pages/admin/ReportesDashboard
+ * @version 1.0.0
+ */
+
 import { useEffect, useState, useMemo } from 'react';
 import AdminNavbar from '../../components/common/AdminNavbar';
 import { getAdminReports } from '../../api/services/admin-api-requests/reports';
 import ReactECharts from 'echarts-for-react';
 
-// Helpers defensivos
+/**
+ * Convierte a arreglo de forma defensiva.
+ * @param {*} v - Valor potencialmente arreglo.
+ * @returns {Array} Un arreglo (o arreglo vacío si no lo era).
+ */
 const arr = (v) => (Array.isArray(v) ? v : []);
+
+/**
+ * Convierte a número de forma defensiva.
+ * @param {*} v - Valor potencialmente numérico.
+ * @param {number} [d=0] - Valor por defecto si no es número válido.
+ * @returns {number} Número válido o valor por defecto.
+ */
 const num = (v, d = 0) => (typeof v === 'number' && !Number.isNaN(v) ? v : d);
 
+/**
+ * Página principal de reportes y dashboard.
+ *
+ * @component
+ * @example
+ * return <ReportesDashboard />
+ */
 export default function ReportesDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
+  /**
+   * Carga inicial de datos del dashboard desde el backend.
+   */
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -26,12 +59,15 @@ export default function ReportesDashboard() {
     })();
   }, []);
 
-  // Series procesadas
+  // Series derivadas del payload de backend (defensivo ante null/undefined)
   const aplicacionesPorMes = useMemo(() => arr(data?.series?.aplicacionesPorMes), [data]);
   const topEst = useMemo(() => arr(data?.series?.topEstablecimientos), [data]);
   const topCat = useMemo(() => arr(data?.series?.topCategorias), [data]);
 
-  // === Configuración ECharts ===
+  /**
+   * Opciones de ECharts para la serie de línea (aplicaciones por mes).
+   * @type {import('echarts').EChartsOption}
+   */
   const lineOptions = useMemo(
     () => ({
       tooltip: { trigger: 'axis' },
@@ -53,6 +89,10 @@ export default function ReportesDashboard() {
     [aplicacionesPorMes]
   );
 
+  /**
+   * Opciones de ECharts para barras de top establecimientos.
+   * @type {import('echarts').EChartsOption}
+   */
   const barTopEstOptions = useMemo(
     () => ({
       tooltip: { trigger: 'axis' },
@@ -81,6 +121,10 @@ export default function ReportesDashboard() {
     [topEst]
   );
 
+  /**
+   * Opciones de ECharts para barras de top categorías.
+   * @type {import('echarts').EChartsOption}
+   */
   const barTopCatOptions = useMemo(
     () => ({
       tooltip: { trigger: 'axis' },
@@ -109,7 +153,7 @@ export default function ReportesDashboard() {
     [topCat]
   );
 
-  // === Render ===
+  // Render
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       <AdminNavbar />
@@ -173,7 +217,14 @@ export default function ReportesDashboard() {
   );
 }
 
-// === Subcomponentes reutilizables ===
+/**
+ * Muestra un KPI (tarjeta compacta con título y valor).
+ *
+ * @component
+ * @param {Object} props - Propiedades del componente.
+ * @param {string} props.title - Título del KPI.
+ * @param {number} props.value - Valor numérico a mostrar.
+ */
 function KPI({ title, value }) {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md text-center">
@@ -183,6 +234,14 @@ function KPI({ title, value }) {
   );
 }
 
+/**
+ * Tarjeta contenedora con título para agrupar contenido (e.g., gráficas).
+ *
+ * @component
+ * @param {Object} props - Propiedades del componente.
+ * @param {string} props.title - Título de la tarjeta.
+ * @param {React.ReactNode} props.children - Contenido a renderizar.
+ */
 function Card({ title, children }) {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
@@ -192,6 +251,11 @@ function Card({ title, children }) {
   );
 }
 
+/**
+ * Estado vacío para contenedores de gráficas sin datos.
+ *
+ * @component
+ */
 function EmptyChart() {
   return (
     <div className="h-[280px] flex items-center justify-center text-sm text-gray-400">

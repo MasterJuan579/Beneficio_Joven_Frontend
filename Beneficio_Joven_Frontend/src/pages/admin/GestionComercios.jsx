@@ -1,4 +1,13 @@
-// src/pages/admin/GestionComercios.jsx
+/**
+ * @file GestionComercios.jsx
+ * @description Página de administración para gestionar comercios/sucursales.
+ * Permite buscar, filtrar por estado, exportar CSV, crear establecimientos/sucursales
+ * y activar/desactivar sucursales mediante un modal de confirmación.
+ *
+ * @module pages/admin/GestionComercios
+ * @version 1.0.0
+ */
+
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import AdminNavbar from '../../components/common/AdminNavbar';
@@ -8,23 +17,39 @@ import ConfirmToggleSucursalModal from '../../components/admin/comercios/Confirm
 import AddSucursalModal from '../../components/admin/comercios/AddSucursalModal';
 import AddEstablecimientoModal from '../../components/admin/comercios/AddEstablecimientoModal';
 
+/**
+ * Página de gestión de comercios/sucursales.
+ *
+ * @component
+ * @example
+ * return <GestionComercios />
+ */
 function GestionComercios() {
-  // Estados
+  // Estado general de la vista
   const [sucursales, setSucursales] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+
+  // Estado para acciones puntuales
   const [selectedSucursal, setSelectedSucursal] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const [isAddSucursalModalOpen, setIsAddSucursalModalOpen] = useState(false);
   const [isAddEstablecimientoModalOpen, setIsAddEstablecimientoModalOpen] = useState(false);
 
-  // Cargar sucursales al montar el componente
+  /**
+   * Carga inicial de sucursales al montar el componente.
+   */
   useEffect(() => {
     fetchSucursales();
   }, []);
 
+  /**
+   * Consulta la lista de sucursales desde el backend y actualiza el estado.
+   * @async
+   * @function fetchSucursales
+   */
   const fetchSucursales = async () => {
     setIsLoading(true);
     const result = await getSucursales();
@@ -38,21 +63,25 @@ function GestionComercios() {
     setIsLoading(false);
   };
 
-  // Filtrar sucursales por búsqueda y estado
+  /**
+   * Lista filtrada de sucursales según término de búsqueda y estado seleccionado.
+   * - Búsqueda por nombre de sucursal y categoría.
+   * - Si `showInactive` es false, sólo muestra activas.
+   */
   const filteredSucursales = sucursales.filter((sucursal) => {
-    // Filtro por búsqueda
     const matchesSearch =
       (sucursal?.nombreSucursal || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (sucursal?.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Filtro por estado (si showInactive es false, solo mostrar activos)
     const matchesStatus = showInactive ? true : sucursal.activo;
-    
     return matchesSearch && matchesStatus;
   });
 
+  /**
+   * Exporta a CSV la lista completa de sucursales cargadas en memoria.
+   * Usa `papaparse` para generar el archivo y lo descarga en el navegador.
+   * @function handleExportCSV
+   */
   const handleExportCSV = () => {
-    // Preparar datos para CSV
     const dataToExport = sucursales.map((sucursal) => ({
       ID: sucursal.idSucursal,
       Nombre: sucursal.nombreSucursal,
@@ -67,22 +96,14 @@ function GestionComercios() {
         : '',
     }));
 
-    // Convertir a CSV
-    const csv = Papa.unparse(dataToExport, {
-      quotes: true,
-      header: true,
-    });
+    const csv = Papa.unparse(dataToExport, { quotes: true, header: true });
 
-    // Crear blob y descargar
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
 
     link.setAttribute('href', url);
-    link.setAttribute(
-      'download',
-      `comercios_${new Date().toISOString().split('T')[0]}.csv`
-    );
+    link.setAttribute('download', `comercios_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
 
     document.body.appendChild(link);
@@ -90,12 +111,20 @@ function GestionComercios() {
     document.body.removeChild(link);
   };
 
-  // Manejar Toggle de sucursal
+  /**
+   * Abre el modal de confirmación para activar/desactivar una sucursal.
+   * @param {Object} sucursal - Sucursal seleccionada para el cambio de estado.
+   */
   const handleToggleClick = (sucursal) => {
     setSelectedSucursal(sucursal);
     setIsConfirmModalOpen(true);
   };
 
+  /**
+   * Confirma el cambio de estado de la sucursal seleccionada y refresca la lista.
+   * @async
+   * @function handleConfirmToggle
+   */
   const handleConfirmToggle = async () => {
     if (!selectedSucursal) return;
 
@@ -239,7 +268,7 @@ function GestionComercios() {
         {/* Tabla */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {isLoading ? (
-            // Loading skeleton
+            // Skeleton de carga
             <div className="p-8">
               <div className="animate-pulse space-y-4">
                 {[1, 2, 3, 4].map((i) => (
@@ -306,8 +335,8 @@ function GestionComercios() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-3">
-                          {/* Botón Editar */}
-                          <button className="text-purple-600 hover:text-purple-900">
+                          {/* Botón Editar (placeholder para futura edición) */}
+                          <button className="text-purple-600 hover:text-purple-900" aria-label="Editar sucursal">
                             <svg
                               className="w-5 h-5"
                               fill="none"
@@ -322,8 +351,8 @@ function GestionComercios() {
                               />
                             </svg>
                           </button>
-                          
-                          {/* Toggle Switch */}
+
+                          {/* Toggle de estado */}
                           <ToggleSwitch 
                             isActive={sucursal.activo}
                             onToggle={() => handleToggleClick(sucursal)}
