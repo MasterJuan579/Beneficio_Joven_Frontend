@@ -1,13 +1,4 @@
-/**
- * @file GestionComercios.jsx
- * @description Página de administración para gestionar comercios/sucursales.
- * Permite buscar, filtrar por estado, exportar CSV, crear establecimientos/sucursales
- * y activar/desactivar sucursales mediante un modal de confirmación.
- *
- * @module pages/admin/GestionComercios
- * @version 1.0.0
- */
-
+// src/pages/admin/GestionComercios.jsx
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import AdminNavbar from '../../components/common/AdminNavbar';
@@ -17,39 +8,26 @@ import ConfirmToggleSucursalModal from '../../components/admin/comercios/Confirm
 import AddSucursalModal from '../../components/admin/comercios/AddSucursalModal';
 import AddEstablecimientoModal from '../../components/admin/comercios/AddEstablecimientoModal';
 
-/**
- * Página de gestión de comercios/sucursales.
- *
- * @component
- * @example
- * return <GestionComercios />
- */
 function GestionComercios() {
-  // Estado general de la vista
+  // Estados
   const [sucursales, setSucursales] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showInactive, setShowInactive] = useState(false);
-
-  // Estado para acciones puntuales
   const [selectedSucursal, setSelectedSucursal] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const [isAddSucursalModalOpen, setIsAddSucursalModalOpen] = useState(false);
   const [isAddEstablecimientoModalOpen, setIsAddEstablecimientoModalOpen] = useState(false);
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState('asc');
 
-  /**
-   * Carga inicial de sucursales al montar el componente.
-   */
+
+  // Cargar sucursales al montar el componente
   useEffect(() => {
     fetchSucursales();
   }, []);
 
-  /**
-   * Consulta la lista de sucursales desde el backend y actualiza el estado.
-   * @async
-   * @function fetchSucursales
-   */
   const fetchSucursales = async () => {
     setIsLoading(true);
     const result = await getSucursales();
@@ -63,47 +41,72 @@ function GestionComercios() {
     setIsLoading(false);
   };
 
-  /**
-   * Lista filtrada de sucursales según término de búsqueda y estado seleccionado.
-   * - Búsqueda por nombre de sucursal y categoría.
-   * - Si `showInactive` es false, sólo muestra activas.
-   */
+  // Filtrar sucursales por búsqueda y estado
   const filteredSucursales = sucursales.filter((sucursal) => {
+    // Filtro por búsqueda
     const matchesSearch =
       (sucursal?.nombreSucursal || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (sucursal?.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filtro por estado (si showInactive es false, solo mostrar activos)
     const matchesStatus = showInactive ? true : sucursal.activo;
+    
     return matchesSearch && matchesStatus;
   });
 
-  /**
-   * Exporta a CSV la lista completa de sucursales cargadas en memoria.
-   * Usa `papaparse` para generar el archivo y lo descarga en el navegador.
-   * @function handleExportCSV
-   */
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      // Si ya está seleccionada, alterna asc/desc
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedSucursales = [...filteredSucursales].sort((a, b) => {
+    if (!sortColumn) return 0;
+    
+    const valA = (a[sortColumn] || '').toString().toLowerCase();
+    const valB = (b[sortColumn] || '').toString().toLowerCase();
+
+    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   const handleExportCSV = () => {
+    // Preparar datos para CSV
     const dataToExport = sucursales.map((sucursal) => ({
       ID: sucursal.idSucursal,
       Nombre: sucursal.nombreSucursal,
-      Número: sucursal.numSucursal,
+      Establecimiento: sucursal.nombreEstablecimiento,
       Dirección: sucursal.direccion,
       Categoría: sucursal.categoria,
-      'Horario Apertura': sucursal.horario?.apertura,
-      'Horario Cierre': sucursal.horario?.cierre,
+      'Hora Apertura': sucursal.horaApertura,
+      'Hora Cierre': sucursal.horaCierre,
       Estado: sucursal.activo ? 'Activo' : 'Inactivo',
       'Fecha Registro': sucursal.fechaRegistro
         ? new Date(sucursal.fechaRegistro).toLocaleDateString('es-MX')
         : '',
     }));
 
-    const csv = Papa.unparse(dataToExport, { quotes: true, header: true });
+    // Convertir a CSV
+    const csv = Papa.unparse(dataToExport, {
+      quotes: true,
+      header: true,
+    });
 
+    // Crear blob y descargar
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
 
     link.setAttribute('href', url);
-    link.setAttribute('download', `comercios_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      'download',
+      `comercios_${new Date().toISOString().split('T')[0]}.csv`
+    );
     link.style.visibility = 'hidden';
 
     document.body.appendChild(link);
@@ -111,20 +114,13 @@ function GestionComercios() {
     document.body.removeChild(link);
   };
 
-  /**
-   * Abre el modal de confirmación para activar/desactivar una sucursal.
-   * @param {Object} sucursal - Sucursal seleccionada para el cambio de estado.
-   */
+
+  // Manejar Toggle de sucursal
   const handleToggleClick = (sucursal) => {
     setSelectedSucursal(sucursal);
     setIsConfirmModalOpen(true);
   };
 
-  /**
-   * Confirma el cambio de estado de la sucursal seleccionada y refresca la lista.
-   * @async
-   * @function handleConfirmToggle
-   */
   const handleConfirmToggle = async () => {
     if (!selectedSucursal) return;
 
@@ -268,7 +264,7 @@ function GestionComercios() {
         {/* Tabla */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {isLoading ? (
-            // Skeleton de carga
+            // Loading skeleton
             <div className="p-8">
               <div className="animate-pulse space-y-4">
                 {[1, 2, 3, 4].map((i) => (
@@ -287,41 +283,108 @@ function GestionComercios() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {/* Nombre */}
+                    <th
+                      onClick={() => handleSort('nombreSucursal')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    >
                       Nombre
+                      {sortColumn === 'nombreSucursal' && (
+                        <span className="ml-1 text-purple-600">
+                          {sortDirection === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+
+                    {/* Establecimiento */}
+                    <th
+                      onClick={() => handleSort('nombreEstablecimiento')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    >
+                      Establecimiento
+                      {sortColumn === 'nombreEstablecimiento' && (
+                        <span className="ml-1 text-purple-600">
+                          {sortDirection === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </th>
+
+                    {/* Dirección */}
+                    <th
+                      onClick={() => handleSort('direccion')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    >
                       Dirección
+                      {sortColumn === 'direccion' && (
+                        <span className="ml-1 text-purple-600">
+                          {sortDirection === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+
+                    {/* Categoría */}
+                    <th
+                      onClick={() => handleSort('categoria')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    >
                       Categoría
+                      {sortColumn === 'categoria' && (
+                        <span className="ml-1 text-purple-600">
+                          {sortDirection === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
                     </th>
+
+                    {/* Estado */}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Estado
                     </th>
+
+                    {/* Acciones */}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Acciones
                     </th>
                   </tr>
                 </thead>
+
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredSucursales.map((sucursal) => (
+                  {sortedSucursales.map((sucursal) => (
                     <tr key={sucursal.idSucursal} className="hover:bg-gray-50">
+                      {/* Nombre */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {sucursal.nombreSucursal}
                         </div>
                       </td>
+
+                      {/* Establecimiento */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-900">
+                          {sucursal.nombreEstablecimiento}
+                        </div>
+                      </td>
+
+                      {/* Dirección */}
+                      <td className="px-6 py-4 whitespace-nowrap max-w-xs">
+                        <div
+                          className="text-sm text-gray-500 truncate"
+                          title={sucursal.direccion}
+                        >
                           {sucursal.direccion}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">
+
+                      {/* Categoría */}
+                      <td className="px-6 py-4 whitespace-nowrap max-w-[120px]">
+                        <div
+                          className="text-sm text-gray-500 truncate"
+                          title={sucursal.categoria}
+                        >
                           {sucursal.categoria}
                         </div>
                       </td>
+
+                      {/* Estado */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -333,10 +396,12 @@ function GestionComercios() {
                           {sucursal.activo ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
+
+                      {/* Acciones */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-3">
-                          {/* Botón Editar (placeholder para futura edición) */}
-                          <button className="text-purple-600 hover:text-purple-900" aria-label="Editar sucursal">
+                          {/* Botón Editar */}
+                          <button className="text-purple-600 hover:text-purple-900">
                             <svg
                               className="w-5 h-5"
                               fill="none"
@@ -352,8 +417,8 @@ function GestionComercios() {
                             </svg>
                           </button>
 
-                          {/* Toggle de estado */}
-                          <ToggleSwitch 
+                          {/* Toggle Switch */}
+                          <ToggleSwitch
                             isActive={sucursal.activo}
                             onToggle={() => handleToggleClick(sucursal)}
                           />
