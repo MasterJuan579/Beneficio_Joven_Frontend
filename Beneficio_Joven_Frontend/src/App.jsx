@@ -2,35 +2,36 @@
  * @file App.jsx
  * @description Definición de rutas principales de la aplicación usando React Router v6.
  * Incluye protección de rutas administrativas mediante `ProtectedAdmin` y
- * vistas placeholder para secciones futuras.
+ * vistas completas de cada módulo.
  *
  * @module App
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
+// Páginas principales
 import Login from './pages/Login'
+
+// Páginas del administrador
 import AdminDashboard from './pages/admin/AdminDashboard'
 import GestionComercios from './pages/admin/GestionComercios'
 import GestionDuenos from './pages/admin/GestionDuenos'
 import ReportesDashboard from './pages/admin/ReportesDashboard'
+import Beneficiarios from './pages/admin/Beneficiarios'
+import Descuentos from './pages/admin/Descuentos'
+import Moderacion from './pages/admin/Moderacion'
+import Mapa from './pages/admin/Mapa'
+import Auditoria from './pages/admin/Auditoria'
+
+// Componentes comunes
 import AdminNavbar from './components/common/AdminNavbar'
 
 /**
  * Envuelve rutas que requieren permisos de administrador.
  * - Muestra un loader si el estado de autenticación está cargando.
  * - Redirige a /login si no hay sesión o el rol no es "administrador".
- *
- * @component
- * @param {{ children: React.ReactNode }} props
- * @returns {JSX.Element}
- *
- * @example
- * <ProtectedAdmin>
- *   <AdminDashboard />
- * </ProtectedAdmin>
  */
 function ProtectedAdmin({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth()
@@ -42,41 +43,14 @@ function ProtectedAdmin({ children }) {
       </div>
     )
   }
+
   return (isAuthenticated && user?.role === 'administrador')
     ? children
     : <Navigate to="/login" replace />
 }
 
 /**
- * Vista de marcador de posición con `AdminNavbar` y mensaje de sección en construcción.
- *
- * @component
- * @param {{ title: string }} props
- * @returns {JSX.Element}
- *
- * @example
- * <Placeholder title="Beneficiarios" />
- */
-function Placeholder({ title }) {
-  return (
-    <>
-      <AdminNavbar />
-      <div className="min-h-screen bg-gray-50 pt-16 p-6">
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        <p className="text-gray-600 mt-2">Sección en construcción.</p>
-      </div>
-    </>
-  )
-}
-
-/**
  * Define el árbol de rutas de la aplicación.
- * - Rutas de autenticación: `/login`
- * - Rutas de administración protegidas: `/admin/*`
- * - Redirección por defecto a `/login` para rutas desconocidas.
- *
- * @component
- * @returns {JSX.Element}
  */
 export default function App() {
   return (
@@ -84,7 +58,7 @@ export default function App() {
       {/* Autenticación */}
       <Route path="/login" element={<Login />} />
 
-      {/* Administración: reales */}
+      {/* Administración */}
       <Route
         path="/admin/dashboard"
         element={
@@ -117,13 +91,11 @@ export default function App() {
           </ProtectedAdmin>
         }
       />
-
-      {/* Administración: placeholders de secciones futuras */}
       <Route
         path="/admin/beneficiarios"
         element={
           <ProtectedAdmin>
-            <Placeholder title="Beneficiarios" />
+            <Beneficiarios />
           </ProtectedAdmin>
         }
       />
@@ -131,7 +103,7 @@ export default function App() {
         path="/admin/descuentos"
         element={
           <ProtectedAdmin>
-            <Placeholder title="Descuentos" />
+            <Descuentos />
           </ProtectedAdmin>
         }
       />
@@ -139,7 +111,7 @@ export default function App() {
         path="/admin/moderacion"
         element={
           <ProtectedAdmin>
-            <Placeholder title="Moderación" />
+            <Moderacion />
           </ProtectedAdmin>
         }
       />
@@ -147,7 +119,7 @@ export default function App() {
         path="/admin/mapa"
         element={
           <ProtectedAdmin>
-            <Placeholder title="Mapa" />
+            <Mapa />
           </ProtectedAdmin>
         }
       />
@@ -155,7 +127,7 @@ export default function App() {
         path="/admin/auditoria"
         element={
           <ProtectedAdmin>
-            <Placeholder title="Auditoría" />
+            <Auditoria />
           </ProtectedAdmin>
         }
       />
