@@ -4,7 +4,7 @@
  * Contiene funciones para obtener listas de establecimientos, categorías y crear nuevos registros mediante Axios.
  *
  * @module api/services/admin-api-requests/establecimientos
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import axiosInstance from '../../interceptors/authInterceptor';
@@ -23,19 +23,32 @@ import axiosInstance from '../../interceptors/authInterceptor';
  */
 export const getEstablecimientos = async () => {
   try {
-    const response = await axiosInstance.get('/common/establecimiento');
+    // ✅ Ajuste del endpoint correcto
+    const response = await axiosInstance.get('/admin/establecimiento');
+
+    // Estructuramos la data para que siempre incluya campos esperados
+    const data = response.data.data?.map((e) => ({
+      idEstablecimiento: e.idEstablecimiento,
+      nombreEstablecimiento: e.nombre || e.nombreEstablecimiento,
+      categoria: e.categoria || 'Sin categoría',
+      logoURL: e.logoURL || null,
+      activo: e.activo ?? true,
+      idDueno: e.idDueno || null,
+      nombreDueno: e.nombreDueno || 'Sin asignar',
+    })) || [];
 
     return {
       success: true,
-      data: response.data.data,
-      total: response.data.total,
+      data,
+      total: response.data.total || data.length,
     };
   } catch (error) {
     console.error('Error al obtener establecimientos:', error);
 
     return {
       success: false,
-      message: error.response?.data?.message || 'Error al obtener establecimientos',
+      message:
+        error.response?.data?.message || 'Error al obtener establecimientos',
     };
   }
 };
@@ -66,7 +79,7 @@ export const getCategorias = async () => {
     return {
       success: false,
       message: error.response?.data?.message || 'Error al obtener categorías',
-      data: [], // Retorna array vacío como valor de respaldo
+      data: [], // Retorna array vacío como respaldo
     };
   }
 };
@@ -80,20 +93,20 @@ export const getCategorias = async () => {
  * @param {string} establecimientoData.nombre - Nombre del establecimiento.
  * @param {string} establecimientoData.logoURL - URL del logo (por ejemplo, alojado en Cloudinary).
  * @param {number} establecimientoData.idCategoria - ID de la categoría asignada.
- * @throws {Error} Si faltan campos requeridos como nombre o categoría.
+ * @param {number} establecimientoData.idDueno - ID del dueño asignado al establecimiento.
  * @returns {Promise<{success: boolean, data?: Object, message: string, errors?: Array}>}
- * Devuelve un objeto con el estado de creación y los datos resultantes.
  *
  * @example
  * await createEstablecimiento({
  *   nombre: "Starbucks",
  *   logoURL: "https://res.cloudinary.com/.../logo.png",
- *   idCategoria: 3
+ *   idCategoria: 3,
+ *   idDueno: 7
  * });
  */
 export const createEstablecimiento = async (establecimientoData) => {
   try {
-    // Validación rápida antes del envío
+    // Validaciones simples antes del envío
     if (!establecimientoData.nombre?.trim()) {
       throw new Error('El nombre del establecimiento es requerido');
     }
@@ -102,7 +115,14 @@ export const createEstablecimiento = async (establecimientoData) => {
       throw new Error('La categoría es requerida');
     }
 
-    const response = await axiosInstance.post('/admin/establecimiento', establecimientoData);
+    if (!establecimientoData.idDueno) {
+      throw new Error('El dueño es requerido');
+    }
+
+    const response = await axiosInstance.post(
+      '/admin/establecimiento',
+      establecimientoData
+    );
 
     return {
       success: true,
@@ -114,7 +134,10 @@ export const createEstablecimiento = async (establecimientoData) => {
 
     return {
       success: false,
-      message: error.response?.data?.message || error.message || 'Error al crear establecimiento',
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        'Error al crear establecimiento',
       errors: error.response?.data?.errors || [],
     };
   }

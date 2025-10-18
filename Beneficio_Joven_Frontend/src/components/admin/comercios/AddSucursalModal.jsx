@@ -14,7 +14,7 @@ function AddSucursalModal({ isOpen, onClose, onSucursalCreated }) {
     longitud: null,
     horaApertura: '',
     horaCierre: '',
-    imagenes: [] // ✅ agregar campo inicial
+    imagenes: []
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -63,14 +63,12 @@ function AddSucursalModal({ isOpen, onClose, onSucursalCreated }) {
     setIsLoading(true);
     setError('');
 
-    // ✅ Validación de horarios
     if (formData.horaApertura >= formData.horaCierre) {
       setError('La hora de apertura debe ser antes que la hora de cierre');
       setIsLoading(false);
       return;
     }
 
-    // ✅ Validación de imágenes (frontend)
     if (formData.imagenes.length > 5) {
       setError('Solo se permiten máximo 5 imágenes por sucursal');
       setIsLoading(false);
