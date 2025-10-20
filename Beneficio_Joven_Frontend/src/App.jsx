@@ -46,9 +46,13 @@ function ProtectedAdmin({ children }) {
       </div>
     )
   }
-  return (isAuthenticated && user?.role === 'administrador')
-    ? children
-    : <Navigate to="/login" replace />
+  
+
+  return (
+    isAuthenticated && user?.role === 'administrador'
+      ? children
+      : <Navigate to="/login" replace />
+  )
 }
 
 /**
