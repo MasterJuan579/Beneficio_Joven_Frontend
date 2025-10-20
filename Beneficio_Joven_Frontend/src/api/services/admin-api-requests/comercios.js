@@ -24,7 +24,7 @@ import axiosInstance from '../../interceptors/authInterceptor';
  */
 export const getSucursales = async () => {
   try {
-    const response = await axiosInstance.get('/admin/get/sucursales');
+    const response = await axiosInstance.get('/common/get/sucursales');
     return {
       success: true,
       data: response.data.data,
@@ -142,6 +142,96 @@ export const createSucursal = async (sucursalData) => {
     return {
       success: false,
       message: error.response?.data?.message || 'Error al crear sucursal',
+      errors: error.response?.data?.errors || [],
+    };
+  }
+};
+
+/**
+ * Obtiene los datos completos de una sucursal específica por ID.
+ *
+ * @async
+ * @function getSucursalById
+ * @param {string|number} idSucursal - ID único de la sucursal.
+ * @returns {Promise<{success: boolean, data?: Object, message?: string}>}
+ * Devuelve los datos completos de la sucursal incluyendo imágenes.
+ *
+ * @example
+ * const { success, data } = await getSucursalById(12);
+ * if (success) console.log(data);
+ */
+export const getSucursalById = async (idSucursal) => {
+  try {
+    const response = await axiosInstance.get(`/common/sucursales/${idSucursal}`);
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error) {
+    console.error('Error al obtener sucursal:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Error al obtener sucursal',
+    };
+  }
+};
+
+/**
+ * Actualiza los datos de una sucursal existente.
+ *
+ * @async
+ * @function updateSucursal
+ * @param {string|number} idSucursal - ID único de la sucursal a actualizar.
+ * @param {Object} sucursalData - Datos actualizados de la sucursal.
+ * @param {string} [sucursalData.nombre] - Nombre de la sucursal.
+ * @param {string} [sucursalData.direccion] - Dirección física de la sucursal.
+ * @param {number} [sucursalData.latitud] - Latitud de la ubicación.
+ * @param {number} [sucursalData.longitud] - Longitud de la ubicación.
+ * @param {string} [sucursalData.horaApertura] - Hora de apertura (formato HH:mm).
+ * @param {string} [sucursalData.horaCierre] - Hora de cierre (formato HH:mm).
+ * @param {Array<{url: string, publicId: string}>} [sucursalData.imagenes] - Array de imágenes.
+ * @returns {Promise<{success: boolean, data?: Object, message: string, errors?: Array}>}
+ * Respuesta del servidor con estado de actualización.
+ *
+ * @example
+ * await updateSucursal(12, { 
+ *   nombre: "Sucursal Centro Actualizada", 
+ *   horaApertura: "09:00",
+ *   imagenes: [
+ *     { url: "https://...", publicId: "sucursales/abc123" }
+ *   ]
+ * });
+ */
+export const updateSucursal = async (idSucursal, sucursalData) => {
+  try {
+    // Validación de horarios si ambos están presentes
+    if (sucursalData.horaApertura && sucursalData.horaCierre) {
+      if (sucursalData.horaApertura >= sucursalData.horaCierre) {
+        throw new Error('La hora de apertura debe ser antes que la hora de cierre');
+      }
+    }
+
+    // Validación de imágenes
+    if (sucursalData.imagenes && sucursalData.imagenes.length > 5) {
+      throw new Error('Solo se permiten máximo 5 imágenes por sucursal');
+    }
+
+    const response = await axiosInstance.put(
+      `/admin/sucursales/${idSucursal}`,
+      sucursalData
+    );
+
+    return {
+      success: true,
+      data: response.data.data,
+      message: response.data.message || 'Sucursal actualizada exitosamente',
+    };
+  } catch (error) {
+    console.error('Error al actualizar sucursal:', error);
+
+    return {
+      success: false,
+      message: error.message || error.response?.data?.message || 'Error al actualizar sucursal',
       errors: error.response?.data?.errors || [],
     };
   }

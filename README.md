@@ -249,6 +249,9 @@ Beneficio_Joven_Frontend/
    backend responde 401 → response interceptor → clearAuth() → /login
    ```
 
+
+   
+
 ### Endpoints Backend
 
 | Método | Endpoint                              | Descripción                       |

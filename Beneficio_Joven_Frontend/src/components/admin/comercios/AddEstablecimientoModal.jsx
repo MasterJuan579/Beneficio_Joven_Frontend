@@ -37,6 +37,7 @@ function AddEstablecimientoModal({ isOpen, onClose, onEstablecimientoCreated }) 
   const [isLoadingCategorias, setIsLoadingCategorias] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
 
   /**
    * Carga las categorías disponibles cuando el modal se abre.
