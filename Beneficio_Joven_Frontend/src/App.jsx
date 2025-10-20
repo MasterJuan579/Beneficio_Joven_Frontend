@@ -19,6 +19,7 @@ function ProtectedAdmin({ children }) {
       </div>
     )
   }
+  
 
   return (
     isAuthenticated && user?.role === 'administrador'
