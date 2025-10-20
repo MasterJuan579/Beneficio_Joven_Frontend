@@ -127,7 +127,8 @@ export default function ImportBeneficiariosModal({ isOpen, onClose, onImported }
           )}
 
           {err && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">{err}</div>}
-        </div>
+        </div> 
+        
 
         <div className="p-4 border-t flex justify-end">
           <button onClick={onClose} className="px-4 py-2 rounded-lg border">Cerrar</button>
