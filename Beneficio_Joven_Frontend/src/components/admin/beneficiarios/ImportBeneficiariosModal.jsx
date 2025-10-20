@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import Papa from 'papaparse';
 import { importBeneficiarios } from '../../../api/services/admin-api-requests/beneficiarios';
 
+
+
 export default function ImportBeneficiariosModal({ isOpen, onClose, onImported }) {
   const [file, setFile] = useState(null);
   const [rows, setRows] = useState([]);
