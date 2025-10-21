@@ -18,9 +18,7 @@ import GestionComercios from './pages/admin/GestionComercios'
 import GestionDuenos from './pages/admin/GestionDuenos'
 import ReportesDashboard from './pages/admin/ReportesDashboard'
 import AdminNavbar from './components/common/AdminNavbar'
-
-// Importar cuando esté creado el componente
-// import EditSucursalPage from './pages/shared/EditSucursalPage'
+import EditSucursalPage from './pages/shared/EditSucursalPage'
 
 /**
  * Envuelve rutas que requieren permisos de administrador.
@@ -46,13 +44,9 @@ function ProtectedAdmin({ children }) {
       </div>
     )
   }
-  
-
-  return (
-    isAuthenticated && user?.role === 'administrador'
-      ? children
-      : <Navigate to="/login" replace />
-  )
+  return (isAuthenticated && user?.role === 'administrador')
+    ? children
+    : <Navigate to="/login" replace />
 }
 
 /**
@@ -164,7 +158,7 @@ export default function App() {
         path="/editar-sucursal/:id"
         element={
           <ProtectedShared>
-            <Placeholder title="Editar Sucursal" />
+            <EditSucursalPage />
           </ProtectedShared>
         }
       />

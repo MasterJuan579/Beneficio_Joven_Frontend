@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { uploadImage } from '../../api/services/admin-api-requests/upload';
 
 /**
@@ -19,6 +19,9 @@ function ImageUploader({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  
+  // 🆕 Ref para trackear si es el primer render
+  const isFirstRender = useRef(true);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -69,15 +72,27 @@ function ImageUploader({
 
     const updatedImages = [...images, ...newImages].slice(0, maxImages);
     setImages(updatedImages);
-    onImagesUploaded(updatedImages);
+    
+    // 🆕 Solo llamar callback si hay imágenes nuevas
+    if (newImages.length > 0) {
+      onImagesUploaded(updatedImages);
+    }
+    
     setUploading(false);
   };
 
   const handleRemove = (index) => {
     const updated = images.filter((_, i) => i !== index);
     setImages(updated);
+    
+    // 🆕 Siempre notificar cuando se elimina (acción explícita del usuario)
     onImagesUploaded(updated);
   };
+
+  // 🆕 Marcar que ya no es el primer render después del mount
+  if (isFirstRender.current) {
+    isFirstRender.current = false;
+  }
 
   return (
     <div className="space-y-2">
@@ -94,10 +109,41 @@ function ImageUploader({
             : 'border-gray-300 hover:border-purple-500 hover:bg-gray-50'
         }`}
       >
+        <input
+          type="file"
+          multiple={maxImages > 1}
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+          disabled={uploading || images.length >= maxImages}
+        />
+        
         {uploading ? (
           <div className="flex flex-col items-center py-6">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div>
             <p className="mt-3 text-sm text-gray-600">Subiendo imagen...</p>
+          </div>
+        ) : images.length >= maxImages ? (
+          <div className="flex flex-col items-center py-4">
+            <svg
+              className="w-12 h-12 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <p className="mt-3 text-base font-medium text-gray-700">
+              Máximo de imágenes alcanzado
+            </p>
+            <p className="text-sm text-gray-500 mt-1">
+              Elimina una imagen para agregar otra
+            </p>
           </div>
         ) : (
           <div className="flex flex-col items-center py-4">
@@ -115,7 +161,7 @@ function ImageUploader({
               />
             </svg>
             <p className="mt-3 text-base font-medium text-gray-700">
-              Arrastra o selecciona hasta {maxImages} imagen{maxImages > 1 && 'es'}
+              Arrastra o haz clic para seleccionar {maxImages > 1 ? `hasta ${maxImages} imágenes` : 'una imagen'}
             </p>
           </div>
         )}
@@ -125,7 +171,7 @@ function ImageUploader({
       {images.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
           {images.map((img, index) => (
-            <div key={index} className="relative group border rounded-lg overflow-hidden">
+            <div key={img.publicId || index} className="relative group border rounded-lg overflow-hidden">
               <img src={img.url} alt="Preview" className="w-full h-32 object-cover" />
               <button
                 type="button"
