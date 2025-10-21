@@ -1,6 +1,6 @@
 /**
  * @file Auditoria.jsx
- * @description Vista de eventos de auditoría (tabla simple).
+ * @description Vista de eventos de auditoría (tabla simple) DEBE DE FUNCIONAR.
  */
 import { useEffect, useState } from "react";
 import AdminNavbar from "../../components/common/AdminNavbar";
@@ -10,6 +10,8 @@ export default function Auditoria() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+
+  
 
   useEffect(() => {
     let alive = true;

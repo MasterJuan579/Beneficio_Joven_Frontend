@@ -2,6 +2,7 @@
  * @file Beneficiarios.jsx
  * @description Listado, búsqueda, creación, importación CSV y toggle de beneficiarios.
  */
+
 import { useEffect, useMemo, useState } from 'react';
 import AdminNavbar from '../../components/common/AdminNavbar';
 import ToggleSwitch from '../../components/common/ToggleSwitch';

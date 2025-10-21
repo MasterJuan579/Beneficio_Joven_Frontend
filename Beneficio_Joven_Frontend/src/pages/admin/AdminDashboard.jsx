@@ -21,6 +21,7 @@ import AdminNavbar from "../../components/common/AdminNavbar";
  *   <AdminDashboard />
  * )
  */
+
 function AdminDashboard() {
   const { user } = useAuth();
 

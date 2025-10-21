@@ -2,9 +2,11 @@
  * @file Moderacion.jsx
  * @description Bandeja de moderación (cola + reglas básicas).
  */
+
 import { useEffect, useState } from "react";
 import AdminNavbar from "../../components/common/AdminNavbar";
 import axiosInstance from "../../api/interceptors/authInterceptor";
+
 
 export default function Moderacion() {
   const [queue, setQueue] = useState([]);

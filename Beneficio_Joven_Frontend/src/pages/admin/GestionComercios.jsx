@@ -1,5 +1,6 @@
 // src/pages/admin/GestionComercios.jsx
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
 import AdminNavbar from '../../components/common/AdminNavbar';
 import { getSucursales, toggleSucursalStatus } from '../../api/services/admin-api-requests/comercios';
@@ -21,6 +22,8 @@ function GestionComercios() {
   const [isAddEstablecimientoModalOpen, setIsAddEstablecimientoModalOpen] = useState(false);
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
+
+  const navigate = useNavigate();
 
 
   // Cargar sucursales al montar el componente
@@ -136,6 +139,14 @@ function GestionComercios() {
     }
 
     setIsTogglingStatus(false);
+  };
+
+    /**
+   * Navega a la página de edición de sucursal.
+   * @param {number} idSucursal - ID de la sucursal a editar.
+   */
+  const handleEditClick = (idSucursal) => {
+    navigate(`/editar-sucursal/${idSucursal}`);
   };
 
   return (
@@ -401,7 +412,11 @@ function GestionComercios() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-3">
                           {/* Botón Editar */}
-                          <button className="text-purple-600 hover:text-purple-900">
+                          <button 
+                            onClick={() => handleEditClick(sucursal.idSucursal)}
+                            className="text-purple-600 hover:text-purple-900"
+                            aria-label="Editar sucursal"
+                          >
                             <svg
                               className="w-5 h-5"
                               fill="none"

@@ -9,6 +9,7 @@ import { getAdminReports } from "../../api/services/admin-api-requests/reports";
 import ReactECharts from "echarts-for-react";
 
 // Helpers defensivos
+
 const arr = (v) => (Array.isArray(v) ? v : []);
 const num = (v, d = 0) => {
   const n = Number(v);
