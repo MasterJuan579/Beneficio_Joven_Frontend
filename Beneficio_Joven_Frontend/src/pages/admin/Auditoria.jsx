@@ -11,6 +11,8 @@ export default function Auditoria() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  
+
   useEffect(() => {
     let alive = true;
     (async () => {
