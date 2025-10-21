@@ -1,6 +1,6 @@
 /**
  * @file Auditoria.jsx
- * @description Vista de eventos de auditoría (tabla simple).
+ * @description Vista de eventos de auditoría (tabla simple) DEBE DE FUNCIONAR.
  */
 import { useEffect, useState } from "react";
 import AdminNavbar from "../../components/common/AdminNavbar";
