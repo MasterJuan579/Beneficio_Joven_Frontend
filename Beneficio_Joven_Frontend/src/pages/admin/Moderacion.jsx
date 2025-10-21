@@ -2,6 +2,7 @@
  * @file Moderacion.jsx
  * @description Bandeja de moderación (cola + reglas básicas).
  */
+
 import { useEffect, useState } from "react";
 import AdminNavbar from "../../components/common/AdminNavbar";
 import axiosInstance from "../../api/interceptors/authInterceptor";
