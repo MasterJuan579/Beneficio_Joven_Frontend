@@ -227,7 +227,9 @@ export const updateSucursal = async (idSucursal, sucursalData) => {
       message: response.data.message || 'Sucursal actualizada exitosamente',
     };
   } catch (error) {
-    console.error('Error al actualizar sucursal:', error);
+    console.error('❌ Error al actualizar sucursal:', error);
+    console.error('❌ Response status:', error.response?.status);
+    console.error('❌ Response data:', error.response?.data);
 
     return {
       success: false,
