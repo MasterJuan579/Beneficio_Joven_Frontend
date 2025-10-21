@@ -2,6 +2,8 @@
  * @file Descuentos.jsx
  * @description Gestión y listado de promociones (cupones).
  */
+
+
 import { useEffect, useState, useMemo } from "react";
 import AdminNavbar from "../../components/common/AdminNavbar";
 import axiosInstance from "../../api/interceptors/authInterceptor";
