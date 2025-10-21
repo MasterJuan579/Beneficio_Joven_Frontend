@@ -148,8 +148,8 @@ function EditSucursalPage() {
         direccion: data.direccion || '',
         latitud: data.latitud,
         longitud: data.longitud,
-        horaApertura: data.horaApertura || '',
-        horaCierre: data.horaCierre || '',
+        horaApertura: formData.horaApertura ? formData.horaApertura.substring(0, 5) : null,
+        horaCierre: formData.horaCierre ? formData.horaCierre.substring(0, 5) : null,
         imagenes: data.imagenes || []
       });
     } else {
@@ -259,13 +259,30 @@ function EditSucursalPage() {
     setIsSaving(true);
     setError('');
 
-    const result = await updateSucursal(id, formData);
+    // 🔧 Limpiar y formatear datos para el backend
+    const dataToSend = {
+      nombre: formData.nombre,
+      direccion: formData.direccion,
+      latitud: Number(formData.latitud),  // ✅ Convertir a número
+      longitud: Number(formData.longitud), // ✅ Convertir a número
+      // ✅ Quitar segundos de los horarios (HH:mm:ss -> HH:mm)
+      horaApertura: formData.horaApertura ? formData.horaApertura.substring(0, 5) : null,
+      horaCierre: formData.horaCierre ? formData.horaCierre.substring(0, 5) : null,
+      // ✅ Enviar solo {url, publicId} sin campos extra
+      imagenes: formData.imagenes.map(img => ({
+        url: img.url,
+        publicId: img.publicId
+      }))
+    };
+
+    console.log('📤 Datos limpios a enviar:', JSON.stringify(dataToSend, null, 2));
+
+    const result = await updateSucursal(id, dataToSend);
 
     if (result.success) {
       setIsConfirmModalOpen(false);
       
       // Mostrar mensaje de éxito y redirigir
-      alert('✅ Sucursal actualizada exitosamente');
       navigate('/admin/comercios');
     } else {
       setError(result.message || 'Error al actualizar la sucursal');
