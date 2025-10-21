@@ -4,7 +4,6 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import AdminNavbar from "../../components/common/AdminNavbar";
 import { getAdminReports } from "../../api/services/admin-api-requests/reports";
 import ReactECharts from "echarts-for-react";
 
@@ -24,14 +23,19 @@ export default function ReportesDashboard() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const res = await getAdminReports(); // puedes pasar { from, to }
-      if (res?.success) {
-        setData(res.data);
-        setErrorMsg("");
-      } else {
-        setErrorMsg(res?.message || "Error cargando datos");
+      try {
+        const res = await getAdminReports(); // puedes pasar { from, to }
+        if (res?.success) {
+          setData(res.data);
+          setErrorMsg("");
+        } else {
+          setErrorMsg(res?.message || "Error cargando datos");
+        }
+      } catch (e) {
+        setErrorMsg("Error cargando datos");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, []);
 
@@ -49,10 +53,10 @@ export default function ReportesDashboard() {
     [data]
   );
 
-  const crecBen            = useMemo(() => arr(data?.series?.crecimientoBeneficiarios), [data]);
-  const activMes           = useMemo(() => arr(data?.series?.activacionPorMes),   [data]);
-  const promosStatus       = useMemo(() => arr(data?.series?.promosStatus),       [data]);
-  const topDuenos          = useMemo(() => arr(data?.series?.topDuenos),          [data]);
+  const crecBen      = useMemo(() => arr(data?.series?.crecimientoBeneficiarios), [data]);
+  const activMes     = useMemo(() => arr(data?.series?.activacionPorMes),         [data]);
+  const promosStatus = useMemo(() => arr(data?.series?.promosStatus),             [data]);
+  const topDuenos    = useMemo(() => arr(data?.series?.topDuenos),                [data]);
 
   // Extras
   const embudo   = useMemo(() => arr(data?.series?.embudoConversion),     [data]);
@@ -197,7 +201,7 @@ export default function ReportesDashboard() {
     series: [{ name: "SLA promedio (min)", type: "line", smooth: true, data: slaTrend.map(d => num(d.sla_media_min)) }]
   }), [slaTrend]);
 
-  // ✅ Lifecycle del catálogo (stacked + línea)
+  // Lifecycle del catálogo (stacked + línea)
   const oLifecycle = useMemo(() => ({
     tooltip: { trigger: "axis" },
     legend: { top: 0 },
@@ -205,7 +209,6 @@ export default function ReportesDashboard() {
     xAxis: { type: "category", data: catalogo.map(d => d.mes) },
     yAxis: { type: "value" },
     series: [
-      // Nota: tu API trae total/pendientes/pausadas/aprobadas. Ajusta si agregas más estados.
       { name: "Pendientes", type: "bar", stack: "l", data: catalogo.map(d => num(d.pendientes)) },
       { name: "Pausadas",  type: "bar", stack: "l", data: catalogo.map(d => num(d.pausadas)) },
       { name: "Aprobadas", type: "bar", stack: "l", data: catalogo.map(d => num(d.aprobadas)) },
@@ -213,7 +216,7 @@ export default function ReportesDashboard() {
     ]
   }), [catalogo]);
 
-  // ✅ Geo cobertura (HEATMAP CARTESIANO con ejes CATEGORY) — corrige el error
+  // Geo cobertura (heatmap cartesiano)
   const oGeo = useMemo(() => {
     if (!geo.length) {
       return {
@@ -226,11 +229,9 @@ export default function ReportesDashboard() {
       };
     }
 
-    // 1) Categorías únicas (ordenadas)
     const xCats = Array.from(new Set(geo.map(g => String(g.cell_lng)))).sort((a,b)=>Number(a)-Number(b));
     const yCats = Array.from(new Set(geo.map(g => String(g.cell_lat)))).sort((a,b)=>Number(a)-Number(b));
 
-    // 2) Datos [xIndex, yIndex, value]
     const dataHM = geo.map(g => {
       const x = xCats.indexOf(String(g.cell_lng));
       const y = yCats.indexOf(String(g.cell_lat));
@@ -254,21 +255,13 @@ export default function ReportesDashboard() {
       grid: { left: 60, right: 16, top: 24, bottom: 48, containLabel: true },
       xAxis: { type: "category", name: "cell_lng", data: xCats },
       yAxis: { type: "category", name: "cell_lat", data: yCats, inverse: true },
-      visualMap: {
-        min: 0,
-        max: vmax,
-        calculable: true,
-        orient: "horizontal",
-        left: "center",
-        bottom: 0
-      },
+      visualMap: { min: 0, max: vmax, calculable: true, orient: "horizontal", left: "center", bottom: 0 },
       series: [{ type: "heatmap", data: dataHM, progressive: 0 }]
     };
   }, [geo]);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
-      <AdminNavbar />
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Reportes & Dashboard</h1>
 
