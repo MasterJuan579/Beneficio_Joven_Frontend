@@ -2,6 +2,7 @@
  * @file Mapa.jsx
  * @description Heatmap básico usando ECharts con la serie `geoCobertura` de /admin/reports.
  */
+
 import { useEffect, useState, useMemo } from "react";
 import AdminNavbar from "../../components/common/AdminNavbar";
 import axiosInstance from "../../api/interceptors/authInterceptor";
