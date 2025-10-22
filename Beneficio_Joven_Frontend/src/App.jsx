@@ -4,33 +4,34 @@
  * @version 1.3.1
  */
 
-import { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
+import { Suspense, lazy } from "react";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 
-/* Páginas Admin */
-import Login from './pages/Login';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import GestionComercios from './pages/admin/GestionComercios';
-import GestionDuenos from './pages/admin/GestionDuenos';
-import ReportesDashboard from './pages/admin/ReportesDashboard';
-import Beneficiarios from './pages/admin/Beneficiarios';
-import Descuentos from './pages/admin/Descuentos';
-import Moderacion from './pages/admin/Moderacion';
-import Auditoria from './pages/admin/Auditoria';
+/* Páginas existentes */
+import Login from "./pages/Login";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import GestionComercios from "./pages/admin/GestionComercios";
+import GestionDuenos from "./pages/admin/GestionDuenos";
+import ReportesDashboard from "./pages/admin/ReportesDashboard";
+import Beneficiarios from "./pages/admin/Beneficiarios";
+import Descuentos from "./pages/admin/Descuentos";
+import Moderacion from "./pages/admin/Moderacion";
+import Auditoria from "./pages/admin/Auditoria";
+import EditSucursalPage from "./pages/shared/EditSucursalPage";
+import MapaPage from "./pages/shared/MapaPage";
 
-/* Compartidas */
-import EditSucursalPage from './pages/shared/EditSucursalPage';
+/* Navbar */
+import AdminNavbar from "./components/common/AdminNavbar";
 
-/* Navbar (en layout) */
-import AdminNavbar from './components/common/AdminNavbar';
+/* Owner (lazy) */
+const OwnerDashboard = lazy(() => import("./pages/owner/OwnerDashboard"));
+const OwnerSucursales = lazy(() => import("./pages/owner/SucursalesList"));
+const OwnerPromociones = lazy(() => import("./pages/owner/PromoCreate"));
+// OJO: NO importamos ModeracionRulePage para owner
 
-/* ------ Owner (lazy con nombres reales) ------ */
-const OwnerDashboard      = lazy(() => import('./pages/owner/OwnerDashboard'));
-const OwnerSucursales     = lazy(() => import('./pages/owner/SucursalesList'));
-const OwnerSucursalDetail = lazy(() => import('./pages/owner/SucursalDetail'));
-const OwnerPromoCreate    = lazy(() => import('./pages/owner/PromoCreate'));
-const OwnerModeracionRule = lazy(() => import('./pages/owner/ModeracionRulePage'));
+/* Usaremos la misma página pero bajo ruta admin */
+const ModeracionRulePage = lazy(() => import("./pages/owner/ModeracionRulePage"));
 
 /* --------- Guards --------- */
 function ProtectedAdmin({ children }) {
@@ -42,9 +43,7 @@ function ProtectedAdmin({ children }) {
       </div>
     );
   }
-  return isAuthenticated && user?.role === 'administrador'
-    ? children
-    : <Navigate to="/login" replace />;
+  return isAuthenticated && user?.role === "administrador" ? children : <Navigate to="/login" replace />;
 }
 
 function ProtectedOwner({ children }) {
@@ -56,9 +55,7 @@ function ProtectedOwner({ children }) {
       </div>
     );
   }
-  return isAuthenticated && user?.role === 'dueno'
-    ? children
-    : <Navigate to="/login" replace />;
+  return isAuthenticated && user?.role === "dueno" ? children : <Navigate to="/login" replace />;
 }
 
 function ProtectedShared({ children }) {
@@ -70,18 +67,15 @@ function ProtectedShared({ children }) {
       </div>
     );
   }
-  const allowedRoles = ['administrador', 'dueno'];
-  return isAuthenticated && allowedRoles.includes(user?.role)
-    ? children
-    : <Navigate to="/login" replace />;
+  const allowed = ["administrador", "dueno"];
+  return isAuthenticated && allowed.includes(user?.role) ? children : <Navigate to="/login" replace />;
 }
 
-/* --------- Layouts --------- */
+/* --------- Layout --------- */
 function LayoutWithNavbar() {
   return (
     <>
       <AdminNavbar />
-      {/* Ajusta pt-16 si la altura del navbar cambia */}
       <main className="min-h-screen bg-gray-50 pt-16 p-6">
         <Outlet />
       </main>
@@ -89,16 +83,7 @@ function LayoutWithNavbar() {
   );
 }
 
-function Placeholder({ title }) {
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-      <p className="text-gray-600 mt-2">Sección en construcción.</p>
-    </div>
-  );
-}
-
-/* --------- Rutas --------- */
+/* --------- App --------- */
 export default function App() {
   return (
     <Suspense
@@ -109,10 +94,10 @@ export default function App() {
       }
     >
       <Routes>
-        {/* Público / Auth */}
+        {/* Público */}
         <Route path="/login" element={<Login />} />
 
-        {/* Admin (usa layout con navbar) */}
+        {/* ADMIN */}
         <Route
           element={
             <ProtectedAdmin>
@@ -123,15 +108,16 @@ export default function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/comercios" element={<GestionComercios />} />
           <Route path="/admin/duenos" element={<GestionDuenos />} />
-          <Route path="/admin/reportes" element={<ReportesDashboard />} />
           <Route path="/admin/beneficiarios" element={<Beneficiarios />} />
           <Route path="/admin/descuentos" element={<Descuentos />} />
+          <Route path="/admin/reportes" element={<ReportesDashboard />} />
           <Route path="/admin/moderacion" element={<Moderacion />} />
+          <Route path="/admin/moderacion-reglas" element={<ModeracionRulePage />} /> {/* <-- aquí */}
+          <Route path="/admin/mapa" element={<MapaPage/>} />
           <Route path="/admin/auditoria" element={<Auditoria />} />
-          <Route path="/admin/mapa" element={<Placeholder title="Mapa" />} />
         </Route>
 
-        {/* Owner / Dueños */}
+        {/* OWNER */}
         <Route
           element={
             <ProtectedOwner>
@@ -141,12 +127,11 @@ export default function App() {
         >
           <Route path="/owner/dashboard" element={<OwnerDashboard />} />
           <Route path="/owner/sucursales" element={<OwnerSucursales />} />
-          <Route path="/owner/sucursal/:id" element={<OwnerSucursalDetail />} />
-          <Route path="/owner/promos/nueva" element={<OwnerPromoCreate />} />
-          <Route path="/owner/moderacion/reglas" element={<OwnerModeracionRule />} />
+          <Route path="/owner/promociones" element={<OwnerPromociones />} />
+          {/* Nada de reglas aquí */}
         </Route>
 
-        {/* Rutas compartidas (admin + dueño) */}
+        {/* Compartidas */}
         <Route
           element={
             <ProtectedShared>
