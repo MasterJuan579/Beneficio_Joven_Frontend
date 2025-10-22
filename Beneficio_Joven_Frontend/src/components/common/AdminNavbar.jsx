@@ -1,26 +1,48 @@
-// src/components/common/AdminNavbar.jsx
+/**
+ * @file AdminNavbar.jsx
+ * @description Navbar único y responsivo que se adapta por rol (administrador / dueño).
+ * Compatible con tu estructura de carpetas (usa rutas relativas, no alias).
+ */
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import logoBeneficio from '../../assets/Logos/logo-beneficio.png';
 
-const MENU_ITEMS = [
+/**
+ * Ítems del menú para administrador.
+ * Puedes ajustar o agregar más rutas según tus vistas.
+ */
+const ADMIN_MENU = [
   { label: 'Inicio', to: '/admin/dashboard' },
   { label: 'Comercios', to: '/admin/comercios' },
   { label: 'Dueños', to: '/admin/duenos' },
   { label: 'Beneficiarios', to: '/admin/beneficiarios' },
   { label: 'Descuentos', to: '/admin/descuentos' },
-  { label: 'Reportes - Dashboard', to: '/admin/reportes' },
+  { label: 'Reportes', to: '/admin/reportes' },
   { label: 'Moderación', to: '/admin/moderacion' },
-  { label: 'Mapa', to: '/admin/mapa' },
-  // Evité duplicar "Descuentos" (lo dejé una sola vez).
   { label: 'Auditoría', to: '/admin/auditoria' },
+  { label: 'Mapa', to: '/admin/mapa' },
+];
+
+/**
+ * Ítems del menú para dueño de comercio.
+ */
+const OWNER_MENU = [
+  { label: 'Dashboard', to: '/owner/dashboard' },
+  { label: 'Mis Sucursales', to: '/owner/sucursales' },
+  { label: 'Crear Promoción', to: '/owner/promos/nueva' },
+  { label: 'Reglas de Moderación', to: '/owner/moderacion/reglas' },
 ];
 
 function AdminNavbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+
+  // Detecta el rol del usuario logueado
+  const role = user?.role || 'administrador';
+  const menuItems = role === 'administrador' ? ADMIN_MENU : OWNER_MENU;
 
   const handleLogout = () => {
     logout();
@@ -35,9 +57,12 @@ function AdminNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Barra superior */}
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <img src={logoBeneficio} alt="Beneficio Joven" className="h-10" />
+          {/* Logo + nombre */}
+          <div className="flex items-center space-x-2">
+            <img src={logoBeneficio} alt="Beneficio Joven" className="h-10 w-auto" />
+            <span className="hidden sm:block text-white font-semibold text-lg">
+              Beneficio Joven
+            </span>
           </div>
 
           {/* Botón hamburguesa (móvil) */}
@@ -47,15 +72,27 @@ function AdminNavbar() {
               className="inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-white"
               aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
               aria-expanded={open}
-              onClick={() => setOpen(v => !v)}
+              onClick={() => setOpen((v) => !v)}
             >
               {open ? (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               ) : (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               )}
             </button>
@@ -63,7 +100,7 @@ function AdminNavbar() {
 
           {/* Menú horizontal (desktop) */}
           <div className="hidden md:flex items-center justify-center space-x-6">
-            {MENU_ITEMS.map(item => (
+            {menuItems.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -79,8 +116,11 @@ function AdminNavbar() {
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-purple-800 rounded-full flex items-center justify-center">
                 <span className="text-white font-semibold text-sm">
-                  {user?.nombreUsuario?.charAt(0).toUpperCase() || 'A'}
+                  {user?.nombreUsuario?.charAt(0).toUpperCase() || 'U'}
                 </span>
+              </div>
+              <div className="text-white text-sm capitalize">
+                {user?.nombreUsuario || 'Usuario'} ({role})
               </div>
               <button
                 onClick={handleLogout}
@@ -97,7 +137,7 @@ function AdminNavbar() {
         {open && (
           <div className="md:hidden pb-4 bg-purple-600">
             <div className="flex flex-col space-y-2 pt-2">
-              {MENU_ITEMS.map(item => (
+              {menuItems.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
@@ -112,11 +152,11 @@ function AdminNavbar() {
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-purple-800 rounded-full flex items-center justify-center">
                     <span className="text-white font-semibold text-sm">
-                      {user?.nombreUsuario?.charAt(0).toUpperCase() || 'A'}
+                      {user?.nombreUsuario?.charAt(0).toUpperCase() || 'U'}
                     </span>
                   </div>
                   <span className="text-white text-sm">
-                    {user?.nombreUsuario || 'Admin'}
+                    {user?.nombreUsuario || 'Usuario'} ({role})
                   </span>
                 </div>
                 <button
