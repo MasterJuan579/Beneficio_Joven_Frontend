@@ -9,17 +9,17 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
 /* Páginas */
-import Login from './pages/Login'
-import AdminDashboard from './pages/admin/AdminDashboard'
-import GestionComercios from './pages/admin/GestionComercios'
-import GestionDuenos from './pages/admin/GestionDuenos'
-import ReportesDashboard from './pages/admin/ReportesDashboard'
-import Beneficiarios from './pages/admin/Beneficiarios'
-import Descuentos from './pages/admin/Descuentos'
-import Moderacion from './pages/admin/Moderacion'
-import Auditoria from './pages/admin/Auditoria'
-import EditSucursalPage from './pages/shared/EditSucursalPage'
-import MapaPage from './pages/shared/MapaPage'
+import Login from './pages/Login';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import GestionComercios from './pages/admin/GestionComercios';
+import GestionDuenos from './pages/admin/GestionDuenos';
+import ReportesDashboard from './pages/admin/ReportesDashboard';
+import Beneficiarios from './pages/admin/Beneficiarios';
+import Descuentos from './pages/admin/Descuentos';
+import Moderacion from './pages/admin/Moderacion';
+import Auditoria from './pages/admin/Auditoria';
+import EditSucursalPage from './pages/shared/EditSucursalPage';
+import MapaPage from './pages/shared/MapaPage';
 
 /* Páginas DUEÑO (asegúrate de crearlas sin navbar interno) */
 import OwnerDashboard from './pages/owner/OwnerDashboard';
@@ -27,20 +27,6 @@ import SucursalesList from './pages/owner/SucursalesList';
 import SucursalDetail from './pages/owner/SucursalDetail';
 import PromoCreate from './pages/owner/PromoCreate';
 import ModeracionRulePage from './pages/owner/ModeracionRulePage';
-
-/* Páginas de jp */
-import Login from './pages/Login'
-import AdminDashboard from './pages/admin/AdminDashboard'
-import GestionComercios from './pages/admin/GestionComercios'
-import GestionDuenos from './pages/admin/GestionDuenos'
-import ReportesDashboard from './pages/admin/ReportesDashboard'
-import Beneficiarios from './pages/admin/Beneficiarios'
-import Descuentos from './pages/admin/Descuentos'
-import Moderacion from './pages/admin/Moderacion'
-import Auditoria from './pages/admin/Auditoria'
-import EditSucursalPage from './pages/shared/EditSucursalPage'
-import MapaPage from './pages/shared/MapaPage'
-
 
 /* Navbar (solo en el layout) */
 import AdminNavbar from './components/common/AdminNavbar';
@@ -122,13 +108,12 @@ export default function App() {
         <Route path="/admin/comercios" element={<GestionComercios />} />
         <Route path="/admin/duenos" element={<GestionDuenos />} />
         <Route path="/admin/reportes" element={<ReportesDashboard />} />
-
         {/* Vistas reales existentes */}
         <Route path="/admin/beneficiarios" element={<Beneficiarios />} />
         <Route path="/admin/descuentos" element={<Descuentos />} />
         <Route path="/admin/moderacion" element={<Moderacion />} />
         <Route path="/admin/auditoria" element={<Auditoria />} />
-
+      </Route>
 
       {/* OWNER / DUEÑO (con layout y navbar) */}
       <Route
@@ -142,24 +127,22 @@ export default function App() {
         <Route path="/owner/sucursales" element={<SucursalesList />} />
         <Route path="/owner/sucursales/:id" element={<SucursalDetail />} />
         <Route path="/owner/sucursales/:id/promos/nueva" element={<PromoCreate />} />
-        <Route path="/owner/establecimientos/:idEstablecimiento/moderacion" element={<ModeracionRulePage />} />
+        <Route
+          path="/owner/establecimientos/:idEstablecimiento/moderacion"
+          element={<ModeracionRulePage />}
+        />
       </Route>
 
-      {/* Rutas compartidas (admin + dueño) */}
+      {/* Rutas compartidas (admin + dueño) con el mismo layout */}
       <Route
-        {/* Si “Mapa” no existe aún, deja el placeholder aquí */}
-        <Route path="/admin/mapa" element={<MapaPage />} />
-
-      </Route>
-
-      {/* Rutas compartidas (admin + dueño) que también usan el mismo layout */}
-      <Route  
         element={
           <ProtectedShared>
             <LayoutWithNavbar />
           </ProtectedShared>
         }
       >
+        {/* Si “Mapa” no existe aún, puedes cambiar por <Placeholder title="Mapa" /> */}
+        <Route path="/admin/mapa" element={<MapaPage />} />
         <Route path="/editar-sucursal/:id" element={<EditSucursalPage />} />
       </Route>
 
