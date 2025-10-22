@@ -18,6 +18,8 @@ import Descuentos from './pages/admin/Descuentos'
 import Moderacion from './pages/admin/Moderacion'
 import Auditoria from './pages/admin/Auditoria'
 import EditSucursalPage from './pages/shared/EditSucursalPage'
+import MapaPage from './pages/shared/MapaPage'
+
 
 /* Navbar (solo en el layout) */
 import AdminNavbar from './components/common/AdminNavbar'
@@ -103,11 +105,12 @@ export default function App() {
         <Route path="/admin/auditoria" element={<Auditoria />} />
 
         {/* Si “Mapa” no existe aún, deja el placeholder aquí */}
-        <Route path="/admin/mapa" element={<Placeholder title="Mapa" />} />
+        <Route path="/admin/mapa" element={<MapaPage />} />
+
       </Route>
 
       {/* Rutas compartidas (admin + dueño) que también usan el mismo layout */}
-      <Route
+      <Route  
         element={
           <ProtectedShared>
             <LayoutWithNavbar />
