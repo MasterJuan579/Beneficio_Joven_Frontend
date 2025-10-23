@@ -1,0 +1,45 @@
+{
+  "type": "FeatureCollection",
+  "name": "Estado de Mexico (aprox)",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Estado de México (aprox)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -100.6,
+              20.3
+            ],
+            [
+              -98.4,
+              20.3
+            ],
+            [
+              -98.4,
+              18.1
+            ],
+            [
+              -100.6,
+              18.1
+            ],
+            [
+              -100.6,
+              20.3
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

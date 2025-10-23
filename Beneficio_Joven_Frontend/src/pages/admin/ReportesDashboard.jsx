@@ -1,269 +1,399 @@
 /**
  * @file ReportesDashboard.jsx
- * @description Dashboard de reportes (14+ series de tu API).
+ * @description Dashboard con KPIs, gráficas (ECharts) y Mapa Leaflet de Atizapán (doble tamaño).
+ * Requiere:
+ *   /public/geo/atizapan.json
+ *   npm i react-leaflet leaflet
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { getAdminReports } from "../../api/services/admin-api-requests/reports";
 import ReactECharts from "echarts-for-react";
+import * as echarts from "echarts";
 
-// Helpers defensivos
+// === Leaflet ===
+import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Utils
 const arr = (v) => (Array.isArray(v) ? v : []);
 const num = (v, d = 0) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
 };
 const str = (v, d = "") => (typeof v === "string" ? v : d);
+const notEmpty = (a) => Array.isArray(a) && a.length > 0;
 
+// ====== Leaflet Component (embebido) ======
+const gridToLatLng = (cell_lat, cell_lng) => [cell_lat * 0.01 + 0.005, cell_lng * 0.01 + 0.005];
+
+/** Mapa Leaflet: Atizapán de Zaragoza (DOBLE TAMAÑO) */
+function MapAtizapanLeaflet({ geoCobertura = [] }) {
+  const [munGeo, setMunGeo] = useState(null);
+  const mapRef = useRef(null);
+
+  // Carga GeoJSON (filtra polígonos)
+  useEffect(() => {
+    fetch("/geo/atizapan.json")
+      .then((r) => r.json())
+      .then((raw) => {
+        const onlyPoly = {
+          type: "FeatureCollection",
+          features: (raw.features || []).filter(
+            (f) => f.geometry && ["Polygon", "MultiPolygon"].includes(f.geometry.type)
+          ),
+        };
+        setMunGeo(onlyPoly);
+      })
+      .catch(console.error);
+  }, []);
+
+  // Ajusta vista al límite municipal
+  useEffect(() => {
+    if (!munGeo || !mapRef.current) return;
+    const bounds = L.geoJSON(munGeo).getBounds();
+    mapRef.current.fitBounds(bounds, { padding: [10, 10] });
+  }, [munGeo]);
+
+  // Puntos
+  const puntos = useMemo(() => {
+    const src = Array.isArray(geoCobertura) ? geoCobertura : [];
+    return src
+      .map((g) => {
+        const [lat, lng] = gridToLatLng(Number(g.cell_lat), Number(g.cell_lng));
+        const actividad = num(g.redemptions) + num(g.coupons) + num(g.branches);
+        return { lat, lng, actividad, meta: g };
+      })
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  }, [geoCobertura]);
+
+  const maxV = useMemo(() => Math.max(1, ...puntos.map((p) => p.actividad || 0)), [puntos]);
+
+  return (
+    <div style={{ height: 640, width: "100%" }}>
+      <MapContainer
+        ref={mapRef}
+        center={[19.55, -99.26]}
+        zoom={12}
+        scrollWheelZoom
+        style={{ height: "100%", width: "100%", borderRadius: 8 }}
+      >
+        <TileLayer
+          attribution="&copy; OpenStreetMap contributors"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {munGeo && (
+          <GeoJSON
+            data={munGeo}
+            style={{
+              color: "#333",
+              weight: 1,
+              fillColor: "#f5cf29",
+              fillOpacity: 0.35,
+            }}
+          />
+        )}
+
+        {puntos.map((p, i) => (
+          <CircleMarker
+            key={i}
+            center={[p.lat, p.lng]} // Leaflet usa [lat,lng]
+            radius={Math.max(5, Math.min(22, 6 + (16 * p.actividad) / (maxV || 1)))}
+            pathOptions={{
+              color: "#1f6f63",
+              weight: 1,
+              fillColor: "#2b8cbe",
+              fillOpacity: 0.85,
+            }}
+          >
+            <Tooltip direction="top" offset={[0, -2]} opacity={1}>
+              <div>
+                <div>
+                  <b>Actividad:</b> {p.actividad}
+                </div>
+                {"branches" in p.meta && <div>Sucursales: {p.meta.branches}</div>}
+                {"coupons" in p.meta && <div>Promos: {p.meta.coupons}</div>}
+                {"redemptions" in p.meta && <div>Canjes: {p.meta.redemptions}</div>}
+              </div>
+            </Tooltip>
+          </CircleMarker>
+        ))}
+      </MapContainer>
+    </div>
+  );
+}
+
+// ====== Dashboard ======
 export default function ReportesDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [from, setFrom] = useState(""); // YYYY-MM-DD
+  const [to, setTo] = useState("");     // YYYY-MM-DD
+
+  // Carga de datos
+  const fetchData = async (filters = {}) => {
+    setLoading(true);
+    try {
+      const res = await getAdminReports(filters); // acepta { from, to }
+      if (res?.success) {
+        setData(res.data);
+        setErrorMsg("");
+      } else {
+        setErrorMsg(res?.message || "No fue posible cargar los datos");
+      }
+    } catch {
+      setErrorMsg("No fue posible cargar los datos");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await getAdminReports(); // puedes pasar { from, to }
-        if (res?.success) {
-          setData(res.data);
-          setErrorMsg("");
-        } else {
-          setErrorMsg(res?.message || "Error cargando datos");
-        }
-      } catch (e) {
-        setErrorMsg("Error cargando datos");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Series base
-  const aplicacionesPorMes = useMemo(() => arr(data?.series?.aplicacionesPorMes), [data]);
-  const redencionesPorMes  = useMemo(() => arr(data?.series?.redencionesPorMes),  [data]);
-  const topEst             = useMemo(() => arr(data?.series?.topEstablecimientos),[data]);
-  const topCat             = useMemo(() => arr(data?.series?.topCategorias),      [data]);
-  const usosPorHora        = useMemo(() => arr(data?.series?.usosPorHora),        [data]);
+  const applyFilters = () => {
+    const filters = {};
+    if (from) filters.from = from;
+    if (to) filters.to = to;
+    fetchData(filters);
+  };
 
-  // Etiquetas de día en español
-  const mapDias = { Sunday:"Dom", Monday:"Lun", Tuesday:"Mar", Wednesday:"Mié", Thursday:"Jue", Friday:"Vie", Saturday:"Sáb" };
-  const usosPorDia = useMemo(
-    () => arr(data?.series?.usosPorDiaSemana).map(d => ({ ...d, dia: mapDias[d.dia] ?? d.dia })),
-    [data]
+  // ====== payload ======
+  const k = data?.kpis || {};
+  const s = data?.series || {};
+
+  // Series (sanitizadas)
+  const aplicacionesPorMes = useMemo(
+    () => arr(s.aplicacionesPorMes).map((x) => ({ ym: str(x.ym), aplicaciones: num(x.aplicaciones) })),
+    [s.aplicacionesPorMes]
   );
 
-  const crecBen      = useMemo(() => arr(data?.series?.crecimientoBeneficiarios), [data]);
-  const activMes     = useMemo(() => arr(data?.series?.activacionPorMes),         [data]);
-  const promosStatus = useMemo(() => arr(data?.series?.promosStatus),             [data]);
-  const topDuenos    = useMemo(() => arr(data?.series?.topDuenos),                [data]);
+  const topCategorias = useMemo(
+    () => arr(s.topCategorias).map((x) => ({ categoria: str(x.categoria), establecimientos: num(x.establecimientos) })),
+    [s.topCategorias]
+  );
 
-  // Extras
-  const embudo   = useMemo(() => arr(data?.series?.embudoConversion),     [data]);
-  const slaTrend = useMemo(() => arr(data?.series?.slaModeracionTrend),   [data]);
-  const catalogo = useMemo(() => arr(data?.series?.catalogoLifecycle),    [data]);
-  const geo      = useMemo(() => arr(data?.series?.geoCobertura),         [data]);
+  const usosPorHora = useMemo(
+    () => arr(s.usosPorHora).map((x) => ({ dow: num(x.dow), hora: num(x.hora), usos: num(x.usos) })),
+    [s.usosPorHora]
+  );
 
-  // KPIs
-  const k = data?.kpis || {};
-  const kSLA = k?.slaModeracion || {};
+  const mapDias = { Sunday: "Dom", Monday: "Lun", Tuesday: "Mar", Wednesday: "Mié", Thursday: "Jue", Friday: "Vie", Saturday: "Sáb" };
+  const usosPorDiaSemana = useMemo(
+    () => arr(s.usosPorDiaSemana).map((x) => ({ dia: mapDias[str(x.dia)] ?? str(x.dia), usos: num(x.usos) })),
+    [s.usosPorDiaSemana]
+  );
 
-  // ===== Opciones de ECharts =====
-  const oAplicaciones = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    grid: { left: 24, right: 16, top: 24, bottom: 32, containLabel: true },
-    xAxis: { type: "category", data: aplicacionesPorMes.map(d => d.ym) },
-    yAxis: { type: "value" },
-    series: [{ name: "Aplicaciones", type: "line", smooth: true, data: aplicacionesPorMes.map(d => num(d.aplicaciones)) }]
-  }), [aplicacionesPorMes]);
+  const crecimientoBeneficiarios = useMemo(
+    () => arr(s.crecimientoBeneficiarios).map((x) => ({ mes: str(x.mes), nuevos: num(x.nuevos) })),
+    [s.crecimientoBeneficiarios]
+  );
 
-  const oRedenciones = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    grid: { left: 24, right: 16, top: 24, bottom: 32, containLabel: true },
-    xAxis: { type: "category", data: redencionesPorMes.map(d => d.mes) },
-    yAxis: { type: "value" },
-    series: [{ name: "Redenciones", type: "line", smooth: true, data: redencionesPorMes.map(d => num(d.redenciones)) }]
-  }), [redencionesPorMes]);
+  const activacionPorMes = useMemo(
+    () =>
+      arr(s.activacionPorMes).map((x) => ({
+        mes: str(x.mes),
+        registrados: num(x.registrados),
+        activados: num(x.activados),
+      })),
+    [s.activacionPorMes]
+  );
 
-  const oTopEst = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    grid: { left: 24, right: 16, top: 24, bottom: 80, containLabel: true },
-    xAxis: {
-      type: "category",
-      axisLabel: { rotate: 20 },
-      data: topEst.map(d => str(d.nombre, String(d.idEstablecimiento)))
-    },
-    yAxis: { type: "value" },
-    series: [{ name: "Aplicaciones", type: "bar", barWidth: "55%", data: topEst.map(d => num(d.aplicaciones)) }]
-  }), [topEst]);
+  const promosStatus = useMemo(
+    () =>
+      arr(s.promosStatus).map((x) => ({
+        status: str(x.status),
+        total: num(x.total),
+        sinLimite: num(x.sinLimite),
+        conLimite: num(x.conLimite),
+      })),
+    [s.promosStatus]
+  );
 
-  const oTopCat = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    grid: { left: 24, right: 16, top: 24, bottom: 80, containLabel: true },
-    xAxis: {
-      type: "category",
-      axisLabel: { rotate: 20 },
-      data: topCat.map(d => d.categoria)
-    },
-    yAxis: { type: "value" },
-    series: [{ name: "Establecimientos", type: "bar", barWidth: "55%", data: topCat.map(d => num(d.establecimientos)) }]
-  }), [topCat]);
+  const catalogoLifecycle = useMemo(
+    () =>
+      arr(s.catalogoLifecycle).map((x) => ({
+        mes: str(x.mes),
+        aprobadas: num(x.aprobadas),
+        pendientes: num(x.pendientes),
+        pausadas: num(x.pausadas),
+        total: num(x.total),
+      })),
+    [s.catalogoLifecycle]
+  );
 
-  const oUsosDia = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    grid: { left: 24, right: 16, top: 24, bottom: 32, containLabel: true },
-    xAxis: { type: "category", data: usosPorDia.map(d => d.dia) },
-    yAxis: { type: "value" },
-    series: [{ name: "Usos", type: "bar", barWidth: "55%", data: usosPorDia.map(d => num(d.usos)) }]
-  }), [usosPorDia]);
+  // ====== Opciones ECharts (no mapas) ======
+  const oAplicaciones = useMemo(
+    () => ({
+      tooltip: { trigger: "axis" },
+      grid: { left: 24, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: aplicacionesPorMes.map((d) => d.ym) },
+      yAxis: { type: "value" },
+      series: [{ name: "Canjes", type: "bar", barWidth: "55%", data: aplicacionesPorMes.map((d) => d.aplicaciones) }],
+    }),
+    [aplicacionesPorMes]
+  );
 
-  // Heatmap 24x7 (usosPorHora)
+  const oTopCatPie = useMemo(() => {
+    const total = topCategorias.reduce((s, x) => s + x.establecimientos, 0) || 1;
+    const serie = topCategorias.map((x) => ({
+      name: x.categoria,
+      value: x.establecimientos,
+      percent: Math.round((x.establecimientos * 100) / total),
+    }));
+    return {
+      tooltip: { trigger: "item", formatter: (p) => `${p.name}: ${p.value} (${p.percent}%)` },
+      legend: { orient: "vertical", left: 0, top: "middle" },
+      series: [
+        {
+          name: "Categorías",
+          type: "pie",
+          radius: ["45%", "70%"],
+          center: ["62%", "50%"],
+          label: { formatter: "{b}\n{d}%" },
+          data: serie,
+        },
+      ],
+    };
+  }, [topCategorias]);
+
+  const oUsosDia = useMemo(
+    () => ({
+      tooltip: { trigger: "axis" },
+      grid: { left: 24, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: usosPorDiaSemana.map((d) => d.dia) },
+      yAxis: { type: "value" },
+      series: [{ name: "Usos", type: "bar", barWidth: "55%", data: usosPorDiaSemana.map((d) => d.usos) }],
+    }),
+    [usosPorDiaSemana]
+  );
+
   const oHeatmap = useMemo(() => {
-    const days = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+    const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
     const base = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0));
     usosPorHora.forEach(({ dow, hora, usos }) => {
-      const r = Math.max(1, Math.min(7, Number(dow))) - 1;
-      const c = Math.max(0, Math.min(23, Number(hora)));
-      base[r][c] = Number(usos || 0);
+      const r = Math.max(1, Math.min(7, dow)) - 1;
+      const c = Math.max(0, Math.min(23, hora));
+      base[r][c] = usos;
     });
     const dataHM = [];
     base.forEach((row, r) => row.forEach((v, c) => dataHM.push([c, r, v])));
-    const max = Math.max(1, ...dataHM.map(d => d[2]));
+    const max = Math.max(1, ...dataHM.map((d) => d[2]));
     return {
       tooltip: { position: "top" },
       grid: { left: 60, right: 24, top: 24, bottom: 40, containLabel: true },
       xAxis: { type: "category", data: Array.from({ length: 24 }, (_, i) => `${i}:00`) },
       yAxis: { type: "category", data: days, inverse: true },
       visualMap: { min: 0, max, calculable: true, orient: "horizontal", left: "center", bottom: 0 },
-      series: [{ type: "heatmap", data: dataHM, progressive: 0 }]
+      series: [{ type: "heatmap", data: dataHM, progressive: 0 }],
     };
   }, [usosPorHora]);
 
-  const oCrec = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    grid: { left: 24, right: 16, top: 24, bottom: 32, containLabel: true },
-    xAxis: { type: "category", data: crecBen.map(d => d.mes) },
-    yAxis: { type: "value" },
-    series: [{ name: "Nuevos", type: "line", smooth: true, data: crecBen.map(d => num(d.nuevos)) }]
-  }), [crecBen]);
+  const oCrec = useMemo(
+    () => ({
+      tooltip: { trigger: "axis" },
+      grid: { left: 24, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: crecimientoBeneficiarios.map((d) => d.mes) },
+      yAxis: { type: "value" },
+      series: [{ name: "Nuevos registros", type: "bar", barWidth: "55%", data: crecimientoBeneficiarios.map((d) => d.nuevos) }],
+    }),
+    [crecimientoBeneficiarios]
+  );
 
-  const oActiv = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    legend: { top: 0 },
-    grid: { left: 24, right: 16, top: 40, bottom: 32, containLabel: true },
-    xAxis: { type: "category", data: activMes.map(d => d.mes) },
-    yAxis: { type: "value" },
-    series: [
-      { name: "Registrados", type: "bar", stack: "a", data: activMes.map(d => num(d.registrados)) },
-      { name: "Activados", type: "bar", stack: "a", data: activMes.map(d => num(d.activados)) }
-    ]
-  }), [activMes]);
-
-  const oCatStatus = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    legend: { top: 0 },
-    grid: { left: 24, right: 16, top: 40, bottom: 32, containLabel: true },
-    xAxis: { type: "category", data: promosStatus.map(d => d.status) },
-    yAxis: { type: "value" },
-    series: [
-      { name: "Sin límite", type: "bar", stack: "s", data: promosStatus.map(d => num(d.sinLimite)) },
-      { name: "Con límite", type: "bar", stack: "s", data: promosStatus.map(d => num(d.conLimite)) },
-      { name: "Total", type: "line", data: promosStatus.map(d => num(d.total)) }
-    ]
-  }), [promosStatus]);
-
-  const oTopDuenos = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    grid: { left: 24, right: 16, top: 24, bottom: 80, containLabel: true },
-    xAxis: { type: "category", axisLabel: { rotate: 20 }, data: topDuenos.map(d => d.nombreUsuario) },
-    yAxis: { type: "value" },
-    series: [{ name: "Usos", type: "bar", barWidth: "55%", data: topDuenos.map(d => num(d.usos)) }]
-  }), [topDuenos]);
-
-  const oEmbudo = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    legend: { top: 0 },
-    grid: { left: 24, right: 16, top: 40, bottom: 40, containLabel: true },
-    xAxis: { type: "category", data: embudo.map(d => d.cohort) },
-    yAxis: { type: "value" },
-    series: [
-      { name: "Registrados", type: "bar", stack: "f", data: embudo.map(d => num(d.registrados)) },
-      { name: "≥1 uso", type: "bar", stack: "f", data: embudo.map(d => num(d.activados_1p)) },
-      { name: "≥3 usos", type: "bar", stack: "f", data: embudo.map(d => num(d.frecuentes_3p)) }
-    ]
-  }), [embudo]);
-
-  const oSLA = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    grid: { left: 24, right: 16, top: 24, bottom: 40, containLabel: true },
-    xAxis: { type: "category", data: slaTrend.map(d => d.fecha) },
-    yAxis: { type: "value", name: "min" },
-    series: [{ name: "SLA promedio (min)", type: "line", smooth: true, data: slaTrend.map(d => num(d.sla_media_min)) }]
-  }), [slaTrend]);
-
-  // Lifecycle del catálogo (stacked + línea)
-  const oLifecycle = useMemo(() => ({
-    tooltip: { trigger: "axis" },
-    legend: { top: 0 },
-    grid: { left: 24, right: 16, top: 40, bottom: 32, containLabel: true },
-    xAxis: { type: "category", data: catalogo.map(d => d.mes) },
-    yAxis: { type: "value" },
-    series: [
-      { name: "Pendientes", type: "bar", stack: "l", data: catalogo.map(d => num(d.pendientes)) },
-      { name: "Pausadas",  type: "bar", stack: "l", data: catalogo.map(d => num(d.pausadas)) },
-      { name: "Aprobadas", type: "bar", stack: "l", data: catalogo.map(d => num(d.aprobadas)) },
-      { name: "Total",     type: "line", smooth: true, data: catalogo.map(d => num(d.total)) }
-    ]
-  }), [catalogo]);
-
-  // Geo cobertura (heatmap cartesiano)
-  const oGeo = useMemo(() => {
-    if (!geo.length) {
-      return {
-        grid: { left: 60, right: 16, top: 24, bottom: 48, containLabel: true },
-        xAxis: { type: "category", data: [] },
-        yAxis: { type: "category", data: [] },
-        series: [{ type: "heatmap", data: [] }],
-        visualMap: { min: 0, max: 1, calculable: true, orient: "horizontal", left: "center", bottom: 0 },
-        tooltip: {}
-      };
-    }
-
-    const xCats = Array.from(new Set(geo.map(g => String(g.cell_lng)))).sort((a,b)=>Number(a)-Number(b));
-    const yCats = Array.from(new Set(geo.map(g => String(g.cell_lat)))).sort((a,b)=>Number(a)-Number(b));
-
-    const dataHM = geo.map(g => {
-      const x = xCats.indexOf(String(g.cell_lng));
-      const y = yCats.indexOf(String(g.cell_lat));
-      const val = Number(g.redemptions ?? 0);
-      return [x, y, val];
-    });
-
-    const vmax = Math.max(1, ...dataHM.map(d => d[2]));
-
+  const oActiv = useMemo(() => {
+    const meses = activacionPorMes.map((d) => d.mes);
+    const reg = activacionPorMes.map((d) => d.registrados);
+    const act = activacionPorMes.map((d) => d.activados);
+    const tasa = reg.map((r, i) => (r ? +(100 * act[i] / r).toFixed(1) : 0));
     return {
-      tooltip: {
-        formatter: (p) => {
-          const [xi, yi, val] = p.data || [];
-          const clng = Number(xCats[xi]);
-          const clat = Number(yCats[yi]);
-          const lat = (clat * 0.01 + 0.005).toFixed(4);
-          const lng = (clng * 0.01 + 0.005).toFixed(4);
-          return `Lat: ${lat}°, Lng: ${lng}°<br/>Redenciones: ${val}`;
-        }
-      },
-      grid: { left: 60, right: 16, top: 24, bottom: 48, containLabel: true },
-      xAxis: { type: "category", name: "cell_lng", data: xCats },
-      yAxis: { type: "category", name: "cell_lat", data: yCats, inverse: true },
-      visualMap: { min: 0, max: vmax, calculable: true, orient: "horizontal", left: "center", bottom: 0 },
-      series: [{ type: "heatmap", data: dataHM, progressive: 0 }]
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 24, right: 40, top: 40, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: meses },
+      yAxis: [{ type: "value", name: "Personas" }, { type: "value", name: "% activación", min: 0, max: 100 }],
+      series: [
+        { name: "Registrados", type: "bar", stack: "a", data: reg },
+        { name: "Activados", type: "bar", stack: "a", data: act },
+        { name: "Tasa %", type: "line", yAxisIndex: 1, smooth: true, data: tasa },
+      ],
     };
-  }, [geo]);
+  }, [activacionPorMes]);
+
+  const oPromosStatusPie = useMemo(() => {
+    const serie = promosStatus.map((s) => ({ name: s.status, value: s.total }));
+    return {
+      tooltip: { trigger: "item", formatter: (p) => `${p.name}: ${p.value} (${p.percent}%)` },
+      legend: { orient: "vertical", left: 0, top: "middle" },
+      series: [
+        {
+          name: "Estados",
+          type: "pie",
+          radius: ["45%", "70%"],
+          center: ["62%", "50%"],
+          label: { formatter: "{b}\n{d}%" },
+          data: serie,
+        },
+      ],
+    };
+  }, [promosStatus]);
+
+  const oLifecycle = useMemo(
+    () => ({
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 24, right: 16, top: 40, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: catalogoLifecycle.map((d) => d.mes) },
+      yAxis: { type: "value" },
+      series: [
+        { name: "Pendientes", type: "bar", stack: "l", data: catalogoLifecycle.map((d) => d.pendientes) },
+        { name: "Pausadas", type: "bar", stack: "l", data: catalogoLifecycle.map((d) => d.pausadas) },
+        { name: "Aprobadas", type: "bar", stack: "l", data: catalogoLifecycle.map((d) => d.aprobadas) },
+        { name: "Total", type: "line", smooth: true, data: catalogoLifecycle.map((d) => d.total) },
+      ],
+    }),
+    [catalogoLifecycle]
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Reportes & Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-1">Panel de resultados</h1>
+        <p className="text-sm text-gray-500 mb-6">
+          Vista general para tomar decisiones: registros, uso, promociones y presencia.
+        </p>
+
+        {/* Filtros */}
+        <div className="bg-white p-4 rounded-lg shadow mb-6 flex flex-col md:flex-row items-start md:items-end gap-4">
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Desde</label>
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="border rounded px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Hasta</label>
+            <input
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="border rounded px-3 py-2 text-sm"
+            />
+          </div>
+          <button
+            onClick={applyFilters}
+            className="ml-0 md:ml-auto bg-blue-600 text-white rounded px-4 py-2 text-sm hover:bg-blue-700"
+          >
+            Actualizar
+          </button>
+        </div>
 
         {loading ? (
           <Skeleton />
@@ -273,57 +403,74 @@ export default function ReportesDashboard() {
           <>
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-              <KPI title="Beneficiarios"     value={num(k?.beneficiarios?.total)} />
-              <KPI title="Comercios activos"  value={num(k?.comercios?.activos)} />
-              <KPI title="Sucursales activas" value={num(k?.comercios?.sucursalesActivas)} />
-              <KPI title="Promos vigentes"    value={num(k?.promociones?.vigentes)} />
-              <KPI title="SLA mod. (min)"     value={num(kSLA?.sla_media_min)} />
+              <KPI title="Personas registradas" help="Total de beneficiarios dados de alta." value={num(k?.beneficiarios?.total)} />
+              <KPI title="Comercios activos" help="Comercios con perfil activo." value={num(k?.comercios?.activos)} />
+              <KPI title="Sucursales activas" help="Sucursales habilitadas para canjes." value={num(k?.comercios?.sucursalesActivas)} />
+              <KPI title="Promociones vigentes" help="Promociones activas hoy." value={num(k?.promociones?.vigentes)} />
+              <KPI title="Canjes (30 días)" help="Canjes registrados en los últimos 30 días." value={num(k?.aplicaciones?.usos30d)} />
             </div>
 
-            {/* Gráficas */}
+            {/* Gráficas + Mapa */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card title="Aplicaciones por mes">
-                {aplicacionesPorMes.length ? <ReactECharts option={oAplicaciones} style={{ height: 280 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Redenciones por mes (promos APPROVED)">
-                {redencionesPorMes.length ? <ReactECharts option={oRedenciones} style={{ height: 280 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Top establecimientos por aplicaciones">
-                {topEst.length ? <ReactECharts option={oTopEst} style={{ height: 280 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Top categorías por establecimientos">
-                {topCat.length ? <ReactECharts option={oTopCat} style={{ height: 280 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Usos por día de la semana">
-                {usosPorDia.length ? <ReactECharts option={oUsosDia} style={{ height: 280 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Heatmap usos (día × hora)">
-                {usosPorHora.length ? <ReactECharts option={oHeatmap} style={{ height: 320 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Crecimiento de beneficiarios">
-                {crecBen.length ? <ReactECharts option={oCrec} style={{ height: 280 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Activación por mes (registrados vs activados)">
-                {activMes.length ? <ReactECharts option={oActiv} style={{ height: 280 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Catálogo de promociones por estado">
-                {promosStatus.length ? <ReactECharts option={oCatStatus} style={{ height: 280 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Top dueños por usos">
-                {topDuenos.length ? <ReactECharts option={oTopDuenos} style={{ height: 280 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Embudo de conversión (mensual)">
-                {embudo.length ? <ReactECharts option={oEmbudo} style={{ height: 300 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="SLA de moderación (promedio min por día)">
-                {slaTrend.length ? <ReactECharts option={oSLA} style={{ height: 280 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Lifecycle del catálogo (por mes)">
-                {catalogo.length ? <ReactECharts option={oLifecycle} style={{ height: 280 }} /> : <EmptyChart />}
-              </Card>
-              <Card title="Cobertura geográfica (heatmap por celdas 0.01°)">
-                {geo.length ? <ReactECharts option={oGeo} style={{ height: 320 }} /> : <EmptyChart />}
-              </Card>
+              {notEmpty(aplicacionesPorMes) && (
+                <Card title="Canjes por mes" description="Cuántos canjes se registraron cada mes.">
+                  <ReactECharts option={oAplicaciones} style={{ height: 280 }} echarts={echarts} />
+                </Card>
+              )}
+
+              {notEmpty(topCategorias) && (
+                <Card title="Participación por categoría" description="Cómo se distribuyen los establecimientos por categoría.">
+                  <ReactECharts option={oTopCatPie} style={{ height: 320 }} echarts={echarts} />
+                </Card>
+              )}
+
+              {notEmpty(usosPorDiaSemana) && (
+                <Card title="Uso por día de la semana" description="Qué días se canjea más.">
+                  <ReactECharts option={oUsosDia} style={{ height: 280 }} echarts={echarts} />
+                </Card>
+              )}
+
+              {notEmpty(usosPorHora) && (
+                <Card title="Horario de mayor uso" description="Horas y días con mayor actividad para planear campañas.">
+                  <ReactECharts option={oHeatmap} style={{ height: 320 }} echarts={echarts} />
+                </Card>
+              )}
+
+              {notEmpty(crecimientoBeneficiarios) && (
+                <Card title="Altas de beneficiarios por mes" description="Nuevos registros mensuales.">
+                  <ReactECharts option={oCrec} style={{ height: 280 }} echarts={echarts} />
+                </Card>
+              )}
+
+              {notEmpty(activacionPorMes) && (
+                <Card title="Activación mensual de usuarios" description="Personas que usaron al menos una promoción respecto a las registradas.">
+                  <ReactECharts option={oActiv} style={{ height: 300 }} echarts={echarts} />
+                </Card>
+              )}
+
+              {notEmpty(promosStatus) && (
+                <Card title="Promociones por estado" description="Cantidad de promociones en cada estado.">
+                  <ReactECharts option={oPromosStatusPie} style={{ height: 320 }} echarts={echarts} />
+                </Card>
+              )}
+
+              {notEmpty(catalogoLifecycle) && (
+                <Card title="Evolución del catálogo" description="Cómo ha cambiado el catálogo de promociones mes a mes.">
+                  <ReactECharts option={oLifecycle} style={{ height: 280 }} echarts={echarts} />
+                </Card>
+              )}
+
+              {/* MAPA ATIZAPÁN — DOBLE TAMAÑO Y DOBLE ANCHO */}
+              {Array.isArray(s?.geoCobertura) && s.geoCobertura.length > 0 && (
+                <div className="lg:col-span-2">
+                  <Card
+                    title="Mapa: Atizapán de Zaragoza"
+                    description="Puntos con actividad sobre mapa real. (Vista ampliada)"
+                  >
+                    <MapAtizapanLeaflet geoCobertura={s.geoCobertura} />
+                  </Card>
+                </div>
+              )}
             </div>
           </>
         ) : (
@@ -334,29 +481,33 @@ export default function ReportesDashboard() {
   );
 }
 
-// UI helpers
-function KPI({ title, value }) {
+/*** UI helpers ***/
+function KPI({ title, value, help }) {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md text-center">
-      <div className="text-sm text-gray-500">{title}</div>
-      <div className="text-3xl font-bold text-gray-900">{num(value)}</div>
+    <div className="bg-white p-6 rounded-lg shadow-md text-center" title={help || ""}>
+      <div className="flex items-center justify-center gap-2">
+        <div className="text-sm text-gray-600">{title}</div>
+        {help ? (
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 text-gray-500 text-xs" aria-label={help} title={help}>
+            ?
+          </span>
+        ) : null}
+      </div>
+      <div className="text-3xl font-bold text-gray-900 mt-1">{num(value)}</div>
     </div>
   );
 }
 
-function Card({ title, children }) {
+function Card({ title, description, children }) {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <div className="text-lg font-semibold mb-4">{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function EmptyChart() {
-  return (
-    <div className="h-[280px] flex items-center justify-center text-sm text-gray-400">
-      Sin datos para graficar
+      <div className="mb-1 text-lg font-semibold">{title}</div>
+      {description ? <p className="text-sm text-gray-600 mb-4">{description}</p> : null}
+      {children || (
+        <div className="h-[280px] flex items-center justify-center text-sm text-gray-400">
+          Sin datos para mostrar
+        </div>
+      )}
     </div>
   );
 }
