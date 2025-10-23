@@ -1,4 +1,4 @@
-import React, { useState, Children, useRef, useLayoutEffect } from 'react';
+import React, { useState, Children, useRef, useLayoutEffect, useEffect } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Stepper({
@@ -12,8 +12,8 @@ export default function Stepper({
   footerClassName = '',
   backButtonProps = {},
   nextButtonProps = {},
-  backButtonText = 'Back',
-  nextButtonText = 'Continue',
+  backButtonText = 'Atrás',
+  nextButtonText = 'Siguiente',
   disableStepIndicators = false,
   renderStepIndicator,
   ...rest
@@ -25,7 +25,7 @@ export default function Stepper({
   const isCompleted = currentStep > totalSteps;
   const isLastStep = currentStep === totalSteps;
 
-  const updateStep = newStep => {
+  const updateStep = (newStep) => {
     setCurrentStep(newStep);
     if (newStep > totalSteps) onFinalStepCompleted();
     else onStepChange(newStep);
@@ -48,20 +48,33 @@ export default function Stepper({
   const handleComplete = () => {
     setDirection(1);
     updateStep(totalSteps + 1);
+
+    // ✅ Cierre suave después de completarse
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("closeStepper"));
+    }, 700);
   };
+
+  // 🟣 Escucha cuando el último paso (desde ModalStepper) dispare la animación de completado
+  useEffect(() => {
+    const handleTriggerComplete = () => handleComplete();
+    window.addEventListener("triggerStepperComplete", handleTriggerComplete);
+    return () => window.removeEventListener("triggerStepperComplete", handleTriggerComplete);
+  }, []);
 
   return (
     <div
       className="flex min-h-full flex-1 flex-col items-center justify-center p-4 sm:aspect-[4/3] md:aspect-[2/1]"
       {...rest}
     >
-        <div
+      <div
         className={`mx-auto w-full max-w-md rounded-2xl shadow-lg ${stepCircleContainerClassName}`}
         style={{
-            backgroundColor: '#b8b8daff', // 🎨 fondo tenue, no blanco
-            border: '1px solid #ddd',
+          backgroundColor: '#b8b8daff',
+          border: '1px solid #ddd',
         }}
-        >
+      >
+        {/* 🔹 Indicadores de pasos */}
         <div className={`${stepContainerClassName} flex w-full items-center p-8`}>
           {stepsArray.map((_, index) => {
             const stepNumber = index + 1;
@@ -72,57 +85,69 @@ export default function Stepper({
                   renderStepIndicator({
                     step: stepNumber,
                     currentStep,
-                    onStepClick: clicked => {
+                    onStepClick: (clicked) => {
                       setDirection(clicked > currentStep ? 1 : -1);
                       updateStep(clicked);
-                    }
+                    },
                   })
                 ) : (
                   <StepIndicator
                     step={stepNumber}
                     disableStepIndicators={disableStepIndicators}
                     currentStep={currentStep}
-                    onClickStep={clicked => {
+                    onClickStep={(clicked) => {
                       setDirection(clicked > currentStep ? 1 : -1);
                       updateStep(clicked);
                     }}
                   />
                 )}
-                {isNotLastStep && <StepConnector isComplete={currentStep > stepNumber} />}
+                {isNotLastStep && (
+                  <StepConnector isComplete={currentStep > stepNumber} />
+                )}
               </React.Fragment>
             );
           })}
         </div>
+
+        {/* 🔹 Contenido del paso actual */}
         <StepContentWrapper
           isCompleted={isCompleted}
           currentStep={currentStep}
           direction={direction}
-          className={`space-y-2 px-8 ${contentClassName}`}
+          className={`space-y-2 px-8 mt-6 ${contentClassName}`}
         >
           {stepsArray[currentStep - 1]}
         </StepContentWrapper>
-        {!isCompleted && (
+
+        {/* 🔹 Botones de navegación (excepto en el último paso) */}
+        {!isCompleted && currentStep !== totalSteps && (
           <div className={`px-8 pb-8 ${footerClassName}`}>
-            <div className={`mt-10 flex ${currentStep !== 1 ? 'justify-between' : 'justify-end'}`}>
-              {currentStep !== 1 && (
+            <div className={`mt-10 flex ${currentStep !== 1 ? 'justify-between' : 'justify-between'}`}>
+              {/* Botón salir o atrás */}
+              {currentStep === 1 ? (
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("closeStepper"))}
+                  className="duration-350 rounded px-4 py-2 text-neutral-700 font-semibold hover:text-neutral-900 transition"
+                >
+                  Salir
+                </button>
+              ) : (
                 <button
                   onClick={handleBack}
-                  className={`duration-350 rounded px-2 py-1 transition ${
-                    currentStep === 1
-                      ? 'pointer-events-none opacity-50 text-neutral-400'
-                      : 'text-neutral-400 hover:text-neutral-700'
-                  }`}
+                  className="duration-350 rounded px-2 py-1 text-neutral-400 hover:text-neutral-700 transition"
                   {...backButtonProps}
                 >
                   {backButtonText}
                 </button>
               )}
+
+              {/* Botón siguiente */}
               <button
-                onClick={isLastStep ? handleComplete : handleNext}
-                className="duration-350 flex items-center justify-center rounded-full bg-green-500 py-1.5 px-3.5 font-medium tracking-tight text-white transition hover:bg-green-600 active:bg-green-700"
+                onClick={handleNext}
+                className="duration-350 flex items-center justify-center rounded-full bg-purple-600 py-1.5 px-4 font-medium tracking-tight text-white transition hover:bg-purple-700 active:bg-purple-800"
                 {...nextButtonProps}
               >
-                {isLastStep ? 'Complete' : nextButtonText}
+                {nextButtonText}
               </button>
             </div>
           </div>
@@ -131,6 +156,8 @@ export default function Stepper({
     </div>
   );
 }
+
+/* ========================== ANIMACIONES ========================== */
 
 function StepContentWrapper({ isCompleted, currentStep, direction, children, className }) {
   const [parentHeight, setParentHeight] = useState(0);
@@ -144,7 +171,11 @@ function StepContentWrapper({ isCompleted, currentStep, direction, children, cla
     >
       <AnimatePresence initial={false} mode="sync" custom={direction}>
         {!isCompleted && (
-          <SlideTransition key={currentStep} direction={direction} onHeightReady={h => setParentHeight(h)}>
+          <SlideTransition
+            key={currentStep}
+            direction={direction}
+            onHeightReady={(h) => setParentHeight(h)}
+          >
             {children}
           </SlideTransition>
         )}
@@ -177,18 +208,9 @@ function SlideTransition({ children, direction, onHeightReady }) {
 }
 
 const stepVariants = {
-  enter: dir => ({
-    x: dir >= 0 ? '-100%' : '100%',
-    opacity: 0
-  }),
-  center: {
-    x: '0%',
-    opacity: 1
-  },
-  exit: dir => ({
-    x: dir >= 0 ? '50%' : '-50%',
-    opacity: 0
-  })
+  enter: (dir) => ({ x: dir >= 0 ? '-100%' : '100%', opacity: 0 }),
+  center: { x: '0%', opacity: 1 },
+  exit: (dir) => ({ x: dir >= 0 ? '50%' : '-50%', opacity: 0 }),
 };
 
 export function Step({ children }) {
@@ -197,7 +219,6 @@ export function Step({ children }) {
 
 function StepIndicator({ step, currentStep, onClickStep, disableStepIndicators }) {
   const status = currentStep === step ? 'active' : currentStep < step ? 'inactive' : 'complete';
-
   const handleClick = () => {
     if (step !== currentStep && !disableStepIndicators) onClickStep(step);
   };
@@ -213,7 +234,7 @@ function StepIndicator({ step, currentStep, onClickStep, disableStepIndicators }
         variants={{
           inactive: { scale: 1, backgroundColor: '#222', color: '#a3a3a3' },
           active: { scale: 1, backgroundColor: '#5227FF', color: '#5227FF' },
-          complete: { scale: 1, backgroundColor: '#5227FF', color: '#3b82f6' }
+          complete: { scale: 1, backgroundColor: '#5227FF', color: '#3b82f6' },
         }}
         transition={{ duration: 0.3 }}
         className="flex h-8 w-8 items-center justify-center rounded-full font-semibold"
@@ -233,7 +254,7 @@ function StepIndicator({ step, currentStep, onClickStep, disableStepIndicators }
 function StepConnector({ isComplete }) {
   const lineVariants = {
     incomplete: { width: 0, backgroundColor: 'transparent' },
-    complete: { width: '100%', backgroundColor: '#5227FF' }
+    complete: { width: '100%', backgroundColor: '#5227FF' },
   };
 
   return (
