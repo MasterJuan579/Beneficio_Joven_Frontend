@@ -1,9 +1,3 @@
-/**
- * @file Moderacion.jsx
- * @description Página de moderación de promociones (administrador).
- * Carga promociones reales desde la API y permite aprobar o rechazar.
- */
-
 import { useEffect, useState } from 'react';
 import PromocionCard from '../../components/admin/moderacion/PromocionCard';
 import ModalStepperPromocion from "../../components/admin/moderacion/ModalStepperPromocion";
@@ -20,7 +14,11 @@ export default function Moderacion() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // 🔁 Obtener promociones por estado
+  // 🟣 Nuevo: estado para abrir/cerrar modal y promoción seleccionada
+  const [selectedPromo, setSelectedPromo] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // 🔁 Obtener promociones
   const fetchPromos = async () => {
     setIsLoading(true);
     setError('');
@@ -62,8 +60,20 @@ export default function Moderacion() {
     }
   };
 
+  // 🟣 Función para abrir modal con datos
+  const handleOpenModal = (promo) => {
+    setSelectedPromo(promo);
+    setIsModalOpen(true);
+  };
+
+  // 🟣 Cerrar modal
+  const handleCloseModal = () => {
+    setSelectedPromo(null);
+    setIsModalOpen(false);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-6">
+    <div className="min-h-screen bg-gray-50 py-10 px-6 relative">
       <div className="max-w-7xl mx-auto">
         {/* Encabezado */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
@@ -96,9 +106,7 @@ export default function Moderacion() {
 
         {/* Contenido principal */}
         {isLoading ? (
-          <div className="text-center text-gray-600 py-16">
-            Cargando promociones...
-          </div>
+          <div className="text-center text-gray-600 py-16">Cargando promociones...</div>
         ) : error ? (
           <div className="text-center text-red-600 py-16">{error}</div>
         ) : promos.length === 0 ? (
@@ -113,11 +121,17 @@ export default function Moderacion() {
                 promo={promo}
                 onApprove={() => handleApprove(promo.idPromocion)}
                 onReject={() => handleReject(promo.idPromocion)}
+                onViewDetails={() => handleOpenModal(promo)} // 🟣 Nuevo botón de detalles
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* 🟣 Modal con Stepper */}
+      {isModalOpen && (
+        <ModalStepperPromocion promo={selectedPromo} onClose={handleCloseModal} />
+      )}
     </div>
   );
 }

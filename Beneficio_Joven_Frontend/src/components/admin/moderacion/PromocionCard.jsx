@@ -1,13 +1,9 @@
-import { useNavigate } from "react-router-dom";
-import { Eye } from "lucide-react"; // 👁 ícono elegante para ver detalles
+import { Eye } from "lucide-react"; // 👁 Ícono elegante para ver detalles
 
-export default function PromocionCard({ promo }) {
-  const navigate = useNavigate();
-
+export default function PromocionCard({ promo, onViewDetails }) {
   return (
     <div
-      className="bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer relative"
-      onClick={() => navigate(`/admin/moderacion/${promo.idPromocion}`)}
+      className="bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 relative"
     >
       {/* Estado badge */}
       <span
@@ -30,7 +26,7 @@ export default function PromocionCard({ promo }) {
       <button
         onClick={(e) => {
           e.stopPropagation();
-          navigate(`/admin/moderacion/${promo.idPromocion}`);
+          onViewDetails?.(promo); // 👈 Llama a la función que abre el modal
         }}
         className="absolute top-3 right-3 text-purple-600 hover:text-purple-800 transition"
         title="Ver detalles"
@@ -38,19 +34,21 @@ export default function PromocionCard({ promo }) {
         <Eye size={20} />
       </button>
 
-      {/* Imagen */}
-      <img
-        src={
-          promo.logoURL?.includes("res.cloudinary.com")
-            ? promo.logoURL.replace(
-                "/upload/",
-                "/upload/w_500,h_300,c_pad,b_white,q_auto,f_auto/"
-              )
-            : promo.logoURL || "https://placehold.co/400x300?text=Logo"
-        }
-        alt={promo.nombreEstablecimiento}
-        className="w-full h-48 object-contain bg-white"
-      />
+      {/* Imagen de la promoción */}
+      <div className="w-full h-48 bg-white flex items-center justify-center border-b">
+        <img
+          src={
+            promo.logoURL?.includes("res.cloudinary.com")
+              ? promo.logoURL.replace(
+                  "/upload/",
+                  "/upload/w_500,h_300,c_pad,b_white,q_auto,f_auto/"
+                )
+              : promo.logoURL || "https://placehold.co/400x300?text=Logo"
+          }
+          alt={promo.nombreEstablecimiento}
+          className="max-h-44 object-contain"
+        />
+      </div>
 
       {/* Contenido */}
       <div className="p-5">
@@ -77,5 +75,3 @@ export default function PromocionCard({ promo }) {
     </div>
   );
 }
-
-
