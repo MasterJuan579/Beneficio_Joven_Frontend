@@ -10,6 +10,7 @@ const ADMIN_MENU = [
   { label: "Comercios", to: "/admin/comercios" },
   { label: "Dueños", to: "/admin/duenos" },
   { label: "Beneficiarios", to: "/admin/beneficiarios" },
+  { label: "Reportes", to: "/admin/reportes" },
   { label: "Moderación", to: "/admin/moderacion" },
   { label: "Mapa", to: "/admin/mapa" },
 ];
