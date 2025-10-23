@@ -20,6 +20,8 @@ import Moderacion from "./pages/admin/Moderacion";
 import Auditoria from "./pages/admin/Auditoria";
 import EditSucursalPage from "./pages/shared/EditSucursalPage";
 import MapaPage from "./pages/shared/MapaPage";
+import ModeracionDetalle from "./pages/admin/ModeracionDetalle";
+
 
 /* Navbar */
 import AdminNavbar from "./components/common/AdminNavbar";
@@ -112,7 +114,8 @@ export default function App() {
           <Route path="/admin/descuentos" element={<Descuentos />} />
           <Route path="/admin/reportes" element={<ReportesDashboard />} />
           <Route path="/admin/moderacion" element={<Moderacion />} />
-          <Route path="/admin/moderacion-reglas" element={<ModeracionRulePage />} /> {/* <-- aquí */}
+          <Route path="/admin/moderacion-reglas" element={<ModeracionRulePage />} />
+          <Route path="/admin/moderacion/:id" element={<ModeracionDetalle />} />
           <Route path="/admin/mapa" element={<MapaPage/>} />
           <Route path="/admin/auditoria" element={<Auditoria />} />
         </Route>

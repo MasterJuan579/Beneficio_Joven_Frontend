@@ -34,7 +34,6 @@ function Beneficiarios() {
   const [selected, setSelected] = useState(null);
   const [toggling, setToggling] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
 
   /**
    * Carga inicial de beneficiarios
@@ -199,25 +198,7 @@ function Beneficiarios() {
                 Nuevo Beneficiario
               </button>
 
-              <button
-                onClick={() => setImportOpen(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v16h16M4 8h16"
-                  />
-                </svg>
-                Importar CSV
-              </button>
+
 
               <button
                 onClick={handleExportCSV}
@@ -375,11 +356,6 @@ function Beneficiarios() {
         isOpen={addOpen}
         onClose={() => setAddOpen(false)}
         onCreated={fetchData}
-      />
-      <ImportBeneficiariosModal
-        isOpen={importOpen}
-        onClose={() => setImportOpen(false)}
-        onImported={fetchData}
       />
       <ConfirmToggleBeneficiarioModal
         isOpen={confirmOpen}
