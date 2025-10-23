@@ -65,14 +65,15 @@ function Login() {
         const { role } = result.data.user;
 
         if (role === 'administrador') {
-          navigate('/admin/dashboard');
-        } else if (role === 'dueno') {
-          navigate('/comercio/dashboard');
-        } else if (role === 'beneficiario') {
-          navigate('/beneficiario/dashboard');
-        } else {
-          navigate('/dashboard');
-        }
+  navigate('/admin/dashboard');
+} else if (role === 'dueno') {
+  navigate('/owner/dashboard');      // ✅ coincide con tus rutas owner
+} else if (role === 'beneficiario') {
+  navigate('/beneficiario/dashboard');
+} else {
+  navigate('/dashboard');
+}
+
         
       } else {
         setError(result.message || "Error al iniciar sesión");

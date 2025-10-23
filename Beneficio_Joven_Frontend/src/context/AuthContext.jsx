@@ -5,34 +5,18 @@
  * Provee un hook personalizado `useAuth` y un proveedor de contexto `AuthProvider`.
  *
  * @module context/AuthContext
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import { createContext, useState, useContext, useEffect } from 'react';
 import { login as loginService, register as registerService, logout as logoutService } from '../api/services/authService';
-import { getToken, getUser, hasToken } from '../utils/tokenManager';
+import { getUser, hasToken } from '../utils/tokenManager';
 
 // Crear el contexto principal
 const AuthContext = createContext();
 
 /**
  * Hook personalizado para acceder al contexto de autenticación.
- * 
- * @function useAuth
- * @returns {{
- *   user: Object|null,
- *   isAuthenticated: boolean,
- *   isLoading: boolean,
- *   login: (email: string, password: string) => Promise<{success: boolean, data?: Object, message?: string}>,
- *   register: (userData: Object) => Promise<{success: boolean, data?: Object, message?: string}>,
- *   logout: () => void
- * }}
- * Devuelve el estado y las funciones de autenticación.
- * 
- * @throws {Error} Si se usa fuera de un `AuthProvider`.
- *
- * @example
- * const { user, isAuthenticated, login, logout } = useAuth();
  */
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -44,26 +28,14 @@ export const useAuth = () => {
 
 /**
  * Proveedor del contexto de autenticación.
- *
- * @component
- * @param {Object} props - Propiedades del componente.
- * @param {React.ReactNode} props.children - Componentes hijos que tendrán acceso al contexto de autenticación.
- *
- * @example
- * <AuthProvider>
- *   <App />
- * </AuthProvider>
  */
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => getUser());
-  const [isAuthenticated, setIsAuthenticated] = useState(() => hasToken());
-  const [isLoading, setIsLoading] = useState(false);
+  // Arrancamos loading en true para pulir la restauración de sesión
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  /**
-   * Inicializa el contexto verificando si existe un token y usuario guardado.
-   * @function
-   * @private
-   */
+  // Restaurar sesión al montar
   useEffect(() => {
     const initAuth = () => {
       if (hasToken()) {
@@ -73,32 +45,48 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(true);
         }
       }
+      setIsLoading(false);
     };
     initAuth();
   }, []);
 
+  // Mapeo + normalización de rol para que siempre tengamos:
+  // 'administrador' | 'dueno' | 'beneficiario'
+  const normalizeRole = (raw) => {
+    const r = String(raw || '').toLowerCase();
+    const map = {
+      admin: 'administrador',
+      administrador: 'administrador',
+      dueno: 'dueno',
+      'dueño': 'dueno',
+      beneficiario: 'beneficiario',
+    };
+    return map[r] || r;
+  };
+
   /**
    * Inicia sesión en la aplicación.
-   *
-   * @async
-   * @function login
-   * @param {string} email - Correo electrónico del usuario.
-   * @param {string} password - Contraseña del usuario.
-   * @returns {Promise<{success: boolean, data?: Object, message?: string}>}
-   * Resultado del intento de inicio de sesión.
    */
   const login = async (email, password) => {
     try {
       const result = await loginService(email, password);
 
       if (result.success) {
-        setUser(result.data.user);
+        const backendUser = result.data.user || {};
+        const normalizedRole = normalizeRole(backendUser.role);
+
+        const userToStore = { ...backendUser, role: normalizedRole };
+
+        // Guardamos en estado; (el service ya guardó en localStorage)
+        setUser(userToStore);
         setIsAuthenticated(true);
-        return { success: true, data: result.data };
+
+        // devolvemos el mismo shape pero con rol ya normalizado
+        return { success: true, data: { ...result.data, user: userToStore } };
       }
 
       return result;
-    } catch (error) {
+    } catch {
       return {
         success: false,
         message: 'Error inesperado al iniciar sesión',
@@ -108,18 +96,12 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Registra un nuevo usuario.
-   *
-   * @async
-   * @function register
-   * @param {Object} userData - Datos del usuario a registrar.
-   * @returns {Promise<{success: boolean, data?: Object, message?: string}>}
-   * Resultado del intento de registro.
    */
   const register = async (userData) => {
     try {
       const result = await registerService(userData);
       return result;
-    } catch (error) {
+    } catch {
       return {
         success: false,
         message: 'Error inesperado al registrarse',
@@ -128,13 +110,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Cierra la sesión actual del usuario.
-   *
-   * @function logout
-   * @returns {void}
+   * Cierra sesión.
    */
   const logout = () => {
-    logoutService();
+    logoutService(); // limpia storage y redirige a /login (tal como ya tienes)
     setUser(null);
     setIsAuthenticated(false);
   };

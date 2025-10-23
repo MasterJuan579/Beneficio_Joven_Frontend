@@ -86,16 +86,16 @@ function AdminDashboard() {
                 </div>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Validar Tarjeta
+                Moderación
               </h3>
               <p className="text-gray-600 text-sm mb-4">
-                Verifica la validez y el estado de las tarjetas de beneficios.
+                Modera las promociones agregadas por el el dueño
               </p>
               <button
-                onClick={() => navigate("/admin/validar")}
+                onClick={() => navigate("/admin/moderacion")}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 rounded-lg transition"
               >
-                Validar
+                Moderar
               </button>
             </div>
 

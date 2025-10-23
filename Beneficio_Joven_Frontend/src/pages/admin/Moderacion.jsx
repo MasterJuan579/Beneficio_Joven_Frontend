@@ -1,174 +1,137 @@
-/**
- * @file Moderacion.jsx
- * @description Bandeja de moderación (cola + reglas básicas).
- */
+import { useEffect, useState } from 'react';
+import PromocionCard from '../../components/admin/moderacion/PromocionCard';
+import ModalStepperPromocion from "../../components/admin/moderacion/ModalStepperPromocion";
 
-import { useEffect, useState } from "react";
-import axiosInstance from "../../api/interceptors/authInterceptor";
-
-const safeDateTime = (v) => {
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? "—" : d.toLocaleString("es-MX");
-};
-
-const StatusBadge = ({ value }) => {
-  const map = {
-    PENDING: "bg-amber-100 text-amber-800 border-amber-200",
-    APPROVED: "bg-green-100 text-green-800 border-green-200",
-    REJECTED: "bg-red-100 text-red-800 border-red-200",
-    PAUSED: "bg-purple-100 text-purple-800 border-purple-200",
-  };
-  const cls = map[value] || "bg-gray-100 text-gray-800 border-gray-200";
-  return (
-    <span className={`inline-block text-xs px-2 py-0.5 rounded-full border ${cls}`}>
-      {value || "—"}
-    </span>
-  );
-};
+import {
+  getPromocionesModeracion,
+  approvePromocion,
+  rejectPromocion,
+} from '../../api/services/admin-api-requests/moderacion';
 
 export default function Moderacion() {
-  const [queue, setQueue] = useState([]);
-  const [rules, setRules] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [activeTab, setActiveTab] = useState('PENDING');
+  const [promos, setPromos] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // 🟣 Nuevo: estado para abrir/cerrar modal y promoción seleccionada
+  const [selectedPromo, setSelectedPromo] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // 🔁 Obtener promociones
+  const fetchPromos = async () => {
+    setIsLoading(true);
+    setError('');
+    const res = await getPromocionesModeracion(activeTab);
+    if (res.success) {
+      setPromos(res.data || []);
+    } else {
+      setError(res.message);
+      setPromos([]);
+    }
+    setIsLoading(false);
+  };
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      setLoading(true);
-      setErr("");
-      try {
-        // GET /admin/moderacion/queue  |  GET /admin/moderacion/rules
-        const [qRes, rRes] = await Promise.allSettled([
-          axiosInstance.get("/admin/moderacion/queue"),
-          axiosInstance.get("/admin/moderacion/rules"),
-        ]);
-        if (!alive) return;
+    fetchPromos();
+  }, [activeTab]);
 
-        if (qRes.status === "fulfilled") {
-          const q = qRes.value?.data;
-          const list = Array.isArray(q?.data) ? q.data : (Array.isArray(q) ? q : []);
-          setQueue(list);
-        } else {
-          setQueue([]);
-        }
+  // ✅ Aprobar promoción
+  const handleApprove = async (id) => {
+    if (!window.confirm('¿Aprobar esta promoción?')) return;
+    const res = await approvePromocion(id);
+    if (res.success) {
+      alert('✅ Promoción aprobada correctamente.');
+      fetchPromos();
+    } else {
+      alert('❌ ' + res.message);
+    }
+  };
 
-        if (rRes.status === "fulfilled") {
-          const r = rRes.value?.data;
-          const list = Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []);
-          setRules(list);
-        } else {
-          setRules([]);
-        }
+  // ❌ Rechazar promoción
+  const handleReject = async (id) => {
+    if (!window.confirm('¿Rechazar esta promoción?')) return;
+    const res = await rejectPromocion(id);
+    if (res.success) {
+      alert('⚠️ Promoción rechazada correctamente.');
+      fetchPromos();
+    } else {
+      alert('❌ ' + res.message);
+    }
+  };
 
-        if (qRes.status === "rejected" && rRes.status === "rejected") {
-          setErr("No se pudo cargar moderación");
-        }
-      } catch (e) {
-        if (!alive) return;
-        setErr(e?.response?.data?.message || "No se pudo cargar moderación");
-        setQueue([]);
-        setRules([]);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, []);
+  // 🟣 Función para abrir modal con datos
+  const handleOpenModal = (promo) => {
+    setSelectedPromo(promo);
+    setIsModalOpen(true);
+  };
+
+  // 🟣 Cerrar modal
+  const handleCloseModal = () => {
+    setSelectedPromo(null);
+    setIsModalOpen(false);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-2">Moderación</h1>
-        <p className="text-gray-600 mb-6">Revisa solicitudes pendientes y reglas por establecimiento.</p>
+    <div className="min-h-screen bg-gray-50 py-10 px-6 relative">
+      <div className="max-w-7xl mx-auto">
+        {/* Encabezado */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Moderación de Promociones</h1>
+          <p className="text-gray-600 mt-2 sm:mt-0">
+            Revisa, aprueba o rechaza promociones creadas por los comercios.
+          </p>
+        </div>
 
-        {loading && (
-          <div className="py-8">
-            <div className="animate-pulse space-y-3">
-              <div className="h-6 bg-gray-200 rounded w-1/3" />
-              <div className="h-32 bg-gray-200 rounded" />
-            </div>
+        {/* Tabs */}
+        <div className="flex gap-3 mb-8">
+          {['PENDING', 'APPROVED', 'REJECTED'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-5 py-2 rounded-lg font-medium transition ${
+                activeTab === tab
+                  ? 'bg-purple-600 text-white shadow'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {tab === 'PENDING'
+                ? 'Pendientes'
+                : tab === 'APPROVED'
+                ? 'Aprobadas'
+                : 'Rechazadas'}
+            </button>
+          ))}
+        </div>
+
+        {/* Contenido principal */}
+        {isLoading ? (
+          <div className="text-center text-gray-600 py-16">Cargando promociones...</div>
+        ) : error ? (
+          <div className="text-center text-red-600 py-16">{error}</div>
+        ) : promos.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-10 text-center text-gray-500">
+            No hay promociones en esta categoría.
           </div>
-        )}
-
-        {!loading && err && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
-            {err}
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {promos.map((promo) => (
+              <PromocionCard
+                key={promo.idPromocion}
+                promo={promo}
+                onApprove={() => handleApprove(promo.idPromocion)}
+                onReject={() => handleReject(promo.idPromocion)}
+                onViewDetails={() => handleOpenModal(promo)} // 🟣 Nuevo botón de detalles
+              />
+            ))}
           </div>
-        )}
-
-        {!loading && !err && (
-          <>
-            {/* Cola */}
-            <section className="mb-8">
-              <h2 className="font-semibold mb-3">Cola de revisión</h2>
-              <div className="overflow-auto rounded-xl border bg-white">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr className="text-left">
-                      <th className="px-4 py-3">ID</th>
-                      <th className="px-4 py-3">Entidad</th>
-                      <th className="px-4 py-3">Acción</th>
-                      <th className="px-4 py-3">Estado</th>
-                      <th className="px-4 py-3">Enviado por</th>
-                      <th className="px-4 py-3">Fecha</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {queue.map((q) => (
-                      <tr key={q.id ?? `${q.entityType}-${q.entityId}-${q.created_at}`}>
-                        <td className="px-4 py-3">{q.id ?? "—"}</td>
-                        <td className="px-4 py-3">{q.entityType} {q.entityId ? `#${q.entityId}` : "—"}</td>
-                        <td className="px-4 py-3">{q.action || "—"}</td>
-                        <td className="px-4 py-3"><StatusBadge value={q.status} /></td>
-                        <td className="px-4 py-3">{q.submittedBy || "—"}</td>
-                        <td className="px-4 py-3">{safeDateTime(q.created_at || q.createdAt)}</td>
-                      </tr>
-                    ))}
-                    {queue.length === 0 && (
-                      <tr>
-                        <td className="px-4 py-6 text-gray-500" colSpan={6}>No hay pendientes</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            {/* Reglas */}
-            <section>
-              <h2 className="font-semibold mb-3">Reglas por Establecimiento</h2>
-              <div className="overflow-auto rounded-xl border bg-white">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr className="text-left">
-                      <th className="px-4 py-3">Establecimiento</th>
-                      <th className="px-4 py-3">Aprueba Cupón</th>
-                      <th className="px-4 py-3">Aprueba Perfil</th>
-                      <th className="px-4 py-3">Creado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {rules.map((r) => (
-                      <tr key={r.idEstablecimiento ?? `${r.idEstablecimiento}-${r.created_at}`}>
-                        <td className="px-4 py-3">{r.nombreEstablecimiento || r.idEstablecimiento || "—"}</td>
-                        <td className="px-4 py-3">{r.requireCouponApproval ? "Sí" : "No"}</td>
-                        <td className="px-4 py-3">{r.requireProfileApproval ? "Sí" : "No"}</td>
-                        <td className="px-4 py-3">{safeDateTime(r.created_at || r.createdAt)}</td>
-                      </tr>
-                    ))}
-                    {rules.length === 0 && (
-                      <tr>
-                        <td className="px-4 py-6 text-gray-500" colSpan={4}>Sin reglas configuradas</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </>
         )}
       </div>
+
+      {/* 🟣 Modal con Stepper */}
+      {isModalOpen && (
+        <ModalStepperPromocion promo={selectedPromo} onClose={handleCloseModal} />
+      )}
     </div>
   );
 }
