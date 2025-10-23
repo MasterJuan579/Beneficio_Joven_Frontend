@@ -15,9 +15,7 @@ import GestionComercios from "./pages/admin/GestionComercios";
 import GestionDuenos from "./pages/admin/GestionDuenos";
 import ReportesDashboard from "./pages/admin/ReportesDashboard";
 import Beneficiarios from "./pages/admin/Beneficiarios";
-import Descuentos from "./pages/admin/Descuentos";
 import Moderacion from "./pages/admin/Moderacion";
-import Auditoria from "./pages/admin/Auditoria";
 import EditSucursalPage from "./pages/shared/EditSucursalPage";
 import MapaPage from "./pages/shared/MapaPage";
 import ModeracionDetalle from "./pages/admin/ModeracionDetalle";
@@ -111,13 +109,10 @@ export default function App() {
           <Route path="/admin/comercios" element={<GestionComercios />} />
           <Route path="/admin/duenos" element={<GestionDuenos />} />
           <Route path="/admin/beneficiarios" element={<Beneficiarios />} />
-          <Route path="/admin/descuentos" element={<Descuentos />} />
           <Route path="/admin/reportes" element={<ReportesDashboard />} />
           <Route path="/admin/moderacion" element={<Moderacion />} />
-          <Route path="/admin/moderacion-reglas" element={<ModeracionRulePage />} />
           <Route path="/admin/moderacion/:id" element={<ModeracionDetalle />} />
           <Route path="/admin/mapa" element={<MapaPage/>} />
-          <Route path="/admin/auditoria" element={<Auditoria />} />
         </Route>
 
         {/* OWNER */}

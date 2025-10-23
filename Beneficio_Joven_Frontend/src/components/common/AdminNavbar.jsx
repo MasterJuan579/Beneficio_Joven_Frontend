@@ -10,12 +10,8 @@ const ADMIN_MENU = [
   { label: "Comercios", to: "/admin/comercios" },
   { label: "Dueños", to: "/admin/duenos" },
   { label: "Beneficiarios", to: "/admin/beneficiarios" },
-  { label: "Descuentos", to: "/admin/descuentos" },
-  { label: "Reportes - Dashboard", to: "/admin/reportes" },
   { label: "Moderación", to: "/admin/moderacion" },
-  { label: "Reglas de moderación", to: "/admin/moderacion-reglas" }, // <-- SOLO ADMIN
   { label: "Mapa", to: "/admin/mapa" },
-  { label: "Auditoría", to: "/admin/auditoria" },
 ];
 
 // Menú SOLO dueño (sin reglas de moderación)
