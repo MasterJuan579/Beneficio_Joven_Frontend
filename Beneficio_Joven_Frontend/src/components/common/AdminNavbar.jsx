@@ -39,7 +39,7 @@ export default function AdminNavbar() {
         logoAlt="Beneficio Joven"
         items={MENU_ITEMS}
         activeHref={window.location.pathname}
-        baseColor="#2d1470ff"              // 🔹 fondo principal morado oscuro
+        baseColor="#9333EA"              // 🔹 fondo principal morado oscuro
         pillColor="#ffffff"              // 🔹 pastillas blancas
         hoveredPillTextColor="#ffffff"   // 🔹 texto blanco al pasar el mouse
         pillTextColor="#1E0A54"          // 🔹 texto morado oscuro
